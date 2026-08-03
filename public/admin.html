@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผู้ดูแลระบบ (Admin Dashboard) - อบต.ตาขีด</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
+        .btn { padding: 9px 18px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; font-family: 'Sarabun'; }
+        .btn-green { background: #16a34a; color: white; }
+        .btn-blue { background: #2563eb; color: white; }
+        .btn-red { background: #dc2626; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f8fafc; color: #475569; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2 style="margin: 0; color: #0f172a;"><i class="fas fa-user-shield"></i> ระบบจัดการหลังบ้าน (Admin Dashboard)</h2>
+        <div>
+            <a href="index.html" class="btn btn-blue"><i class="fas fa-globe"></i> ไปหน้าผู้ใช้ทั่วไป</a>
+        </div>
+    </div>
+
+
+
+    <!-- 📚 เพิ่มบทเรียน -->
+    <div class="card">
+        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-plus-circle"></i> เพิ่มบทเรียนองค์ความรู้ใหม่</h3>
+        <form id="addLessonForm">
+            <div class="form-group">
+                <label>หัวข้อบทเรียน:</label>
+                <input type="text" id="lessonTitle" class="form-control" required placeholder="เช่น ขั้นตอนการเบิกจ่ายงบประมาณ...">
+            </div>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label>หมวดหมู่:</label>
+                    <input type="text" id="lessonCategory" class="form-control" placeholder="เช่น การเงินและพัสดุ, กฎหมาย">
+                </div>
+                <div class="form-group" style="flex: 2; min-width: 300px;">
+                    <label>สรุปย่อ (Short Summary):</label>
+                    <input type="text" id="lessonSummary" class="form-control" placeholder="สรุปสั้นๆ สำหรับแสดงหน้าแรก">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>เนื้อหาบทเรียนฉบับเต็ม:</label>
+                <textarea id="lessonContent" class="form-control" rows="5" placeholder="กรอกเนื้อหา รายละเอียด หรือขั้นตอนปฏิบัติ..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-blue"><i class="fas fa-save"></i> บันทึกบทเรียน</button>
+        </form>
+    </div>
+<!-- ตารางแสดงรายการบทเรียนที่มีอยู่ในระบบ -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="fw-bold mb-3">📚 รายการบทเรียนทั้งหมด (จัดการ/ลบ)</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>หัวข้อบทเรียน</th>
+                        <th>หมวดหมู่</th>
+                        <th style="width: 100px;" class="text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="adminLessonsTable">
+                    <!-- รายการบทเรียนพร้อมปุ่มลบจะเด้งมาตรงนี้ -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+    <!-- 📁 อัปโหลดเอกสาร -->
+    <div class="card">
+        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-file-upload"></i> อัปโหลดเอกสารดาวน์โหลดใหม่</h3>
+        <!-- 1. เปลี่ยน id ฟอร์มให้ตรงกับ admin.js -->
+<form id="documentForm" style="display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px;">
+    
+    <div style="flex: 2; min-width: 200px;">
+        <label style="font-weight: bold; font-size: 14px;">ชื่อเอกสาร / แบบฟอร์ม:</label>
+        <!-- 📌 เพิ่ม name="title" -->
+        <input type="text" id="docTitle" name="title" required placeholder="เช่น แบบฟอร์มขอเสนอราคา" class="form-control">
+    </div>
+
+    <div style="flex: 1; min-width: 140px;">
+        <label style="font-weight: bold; font-size: 14px;">หมวดหมู่:</label>
+        <!-- 📌 เพิ่ม name="category" -->
+        <input type="text" id="docCategory" name="category" placeholder="เช่น การเงิน, พัสดุ" class="form-control">
+    </div>
+
+    <div style="flex: 1; min-width: 120px;">
+        <label style="font-weight: bold; font-size: 14px;">ปีงบประมาณ:</label>
+        <!-- 📌 เพิ่ม name="fiscal_year" -->
+        <input type="text" id="docYear" name="fiscal_year" placeholder="2569" class="form-control">
+    </div>
+
+    <div style="flex: 2; min-width: 200px;">
+        <label style="font-weight: bold; font-size: 14px;">เลือกไฟล์ (PDF/Word):</label>
+        <!-- 📌 เพิ่ม name="file" (สำคัญที่สุดสำหรับอัปโหลดไฟล์!) -->
+        <input type="file" id="docFile" name="file" required style="width: 100%; padding: 7px; background: white;" class="form-control">
+    </div>
+
+    <div style="align-self: flex-end;">
+        <button type="submit" class="btn btn-success">📤 อัปโหลดเอกสาร</button>
+    </div>
+
+</form>
+        </div> <!-- บรรทัด 123 (ปิดการ์ดอัปโหลดเอกสาร) -->
+
+        <!-- 📌 วางโค้ดตารางแสดงรายการเอกสารตรงนี้ได้เลยครับ -->
+        <div style="margin-top: 20px;">
+            <table class="table" style="width:100%; border-collapse: collapse; background: white;">
+                <thead>
+                    <tr style="background: #f1f5f9; text-align: left;">
+                        <th style="padding: 10px;">ชื่อเอกสาร / แบบฟอร์ม</th>
+                        <th style="padding: 10px;">หมวดหมู่</th>
+                        <th style="padding: 10px;">ปีงบประมาณ</th>
+                        <th style="padding: 10px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="docTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 15px;">กำลังโหลดข้อมูล...</td>
+                    </tr>
+                </tbody>
+            </table>
+    </div>
+
+    <!-- 👥 จัดการผู้ใช้งาน -->
+    <div class="card">
+        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-users-cog"></i> จัดการผู้ใช้งานระบบ (เพิ่ม / ลบ บัญชีเจ้าหน้าที่)</h3>
+        <form id="addUserForm" style="display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="flex: 1; min-width: 150px;">
+                <label style="font-weight: bold; font-size: 14px;">Username:</label>
+                <input type="text" id="newUsername" required placeholder="เช่น admin2" class="form-control">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label style="font-weight: bold; font-size: 14px;">Password:</label>
+                <input type="password" id="newPassword" required placeholder="ตั้งรหัสผ่านง่ายๆ" class="form-control">
+            </div>
+            <div style="flex: 1; min-width: 180px;">
+                <label style="font-weight: bold; font-size: 14px;">ชื่อ-นามสกุล / ตำแหน่ง:</label>
+                <input type="text" id="newFullname" placeholder="เช่น นายสมชาย (เจ้าหน้าที่)" class="form-control">
+            </div>
+            <div style="align-self: flex-end;">
+                <button type="submit" class="btn btn-green"><i class="fas fa-user-plus"></i> เพิ่มเจ้าหน้าที่</button>
+            </div>
+        </form>
+
+        <table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>ชื่อ-นามสกุล</th>
+            <th>จัดการ</th>
+        </tr>
+    </thead>
+    <!-- บรรทัดสำคัญ: ต้องมี id="userTableBody" -->
+    <tbody id="userTableBody">
+        <!-- ข้อมูลจะถูกดึงมาใส่ตรงนี้อัตโนมัติ -->
+    </tbody>
+</table>
+    </div>
+
+</div>
+<!-- Modal สำหรับแก้ไขบทเรียน -->
+<div id="editLessonModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0;">✏️ แก้ไขบทเรียน</h3>
+        <form id="editLessonForm">
+            <input type="hidden" id="editLessonId">
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>หัวข้อบทเรียน:</label>
+                <input type="text" id="editLessonTitle" class="form-control" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>หมวดหมู่:</label>
+                <input type="text" id="editLessonCategory" class="form-control" style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>สรุปย่อ:</label>
+                <input type="text" id="editLessonSummary" class="form-control" style="width: 100%; padding: 8px; margin-top: 5px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>รายละเอียดเนื้อหา:</label>
+                <textarea id="editLessonContent" class="form-control" rows="5" style="width: 100%; padding: 8px; margin-top: 5px;"></textarea>
+            </div>
+
+            <div style="text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
+                <button type="button" onclick="closeEditModal()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">ยกเลิก</button>
+                <button type="submit" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">บันทึกการแก้ไข</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+    <!-- 1. เรียกใช้ไฟล์สคริปต์หลังบ้านของคุณ -->
+    <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบเจ้าหน้าที่ - อบต.ตาขีด</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 30px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #475569;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-login:hover {
+            background-color: #1d4ed8;
+        }
+        .error-message {
+            color: #ef4444;
+            margin-top: 12px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>🔑 เข้าสู่ระบบเจ้าหน้าที่</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">ชื่อผู้ใช้งาน (Username):</label>
+                <input type="text" id="username" required placeholder="กรอก Username">
+            </div>
+            <div class="form-group">
+                <label for="password">รหัสผ่าน (Password):</label>
+                <input type="password" id="password" required placeholder="กรอก Password">
+            </div>
+            <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
+            <div id="errorMsg" class="error-message"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // บันทึก Token และข้อมูลผู้ใช้ลง LocalStorage ของเบราว์เซอร์
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    alert('เข้าสู่ระบบสำเร็จ!');
+                    window.location.href = '/admin.html'; // จะวาร์ปไปหน้า Admin Dashboard ถัดไป
+                } else {
+                    errorMsg.innerText = data.message;
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.innerText = 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
