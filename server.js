@@ -65,11 +65,8 @@ db.serialize(() => {
 });
 
 
-    // สร้าง Admin ตั้งต้น (ถ้ายังไม่มี)
-const defaultUser = 'admin';
-db.get("SELECT * FROM users WHERE username = ?", [defaultUser], async (err, row) => {
-   // บังคับอัปเดตรหัสผ่าน admin เป็น admin1234
-const updateAdminPassword = async () => {
+   // อัปเดตรหัสผ่าน admin เป็น admin1234
+(async () => {
     try {
         const hash = await bcrypt.hash('admin1234', 10);
         db.run("UPDATE users SET password = ? WHERE username = 'admin'", [hash], (err) => {
@@ -79,10 +76,7 @@ const updateAdminPassword = async () => {
     } catch (err) {
         console.error("Error hashing password:", err);
     }
-};
-updateAdminPassword();
-
-
+})();
 
 
 // ==========================================
