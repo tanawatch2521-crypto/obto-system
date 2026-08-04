@@ -68,12 +68,15 @@ db.serialize(() => {
     // สร้าง Admin ตั้งต้น (ถ้ายังไม่มี)
 const defaultUser = 'admin';
 db.get("SELECT * FROM users WHERE username = ?", [defaultUser], async (err, row) => {
-    if (!row) {
-        const hash = await bcrypt.hash('admin1234', 10);
-        db.run("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, ?)",
-            [defaultUser, hash, 'เจ้าหน้าที่ อบต.ตาขีด', 'admin']);
-    }
-});
+    // บังคับอัปเดตรหัสผ่าน admin เป็น admin1234
+(async () => {
+    const hash = await bcrypt.hash('admin1234', 10);
+    db.run("UPDATE users SET password = ? WHERE username = 'admin'", [hash], (err) => {
+        if (err) console.error("Error updating admin password:", err.message);
+        else console.log("Admin password updated successfully to admin1234");
+    });
+})();
+
 
 
 // ==========================================
