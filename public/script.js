@@ -17,11 +17,10 @@ async function loadLessons() {
         const result = await response.json();
         const lessons = Array.isArray(result) ? result : (result.data || []);
 
-        // หา Container จาก ID ใน HTML
         const container = document.getElementById('lessons-container') || document.getElementById('lessonContainer');
         if (!container) return;
 
-        container.innerHTML = ''; // ล้างข้อความกำลังโหลด
+        container.innerHTML = ''; 
 
         if (!Array.isArray(lessons) || lessons.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">ไม่มีบทเรียนในระบบ</p>';
@@ -38,6 +37,16 @@ async function loadLessons() {
             const title = lesson.title || 'ไม่มีหัวข้อ';
             const summary = lesson.summary || lesson.description || '-';
             const content = lesson.content || 'ไม่มีรายละเอียดเนื้อหาเพิ่มเติม';
+            
+            // 🖼️ ตรวจสอบว่ามีรูปภาพหรือไม่
+            const imageHTML = lesson.image_url 
+                ? `<img src="${lesson.image_url}" alt="${title}" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; margin: 12px 0;">` 
+                : '';
+
+            // 🎬 ตรวจสอบว่ามีวิดีโอหรือไม่
+            const videoHTML = lesson.video_url 
+                ? `<div style="margin-top: 10px;"><iframe width="100%" height="220" src="${lesson.video_url}" frameborder="0" allowfullscreen style="border-radius: 8px;"></iframe></div>` 
+                : '';
 
             card.innerHTML = `
                 <!-- 1. หมวดหมู่ -->
@@ -55,15 +64,21 @@ async function loadLessons() {
                     ${summary}
                 </p>
 
+                <!-- 🖼️ รูปภาพประกอบบทเรียน (แสดงหน้าการ์ด) -->
+                ${imageHTML}
+
                 <!-- ปุ่มอ่านเพิ่มเติม -->
                 <button onclick="toggleContent(${id})" id="btn-${id}" style="background: #2563eb; color: white; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer;">
-                    อ่านเนื้อหาเพิ่มเติม
+                    📖 อ่านเนื้อหาเพิ่มเติม
                 </button>
 
                 <!-- 4. ส่วนรายละเอียดเนื้อหา (ซ่อนไว้ก่อน) -->
                 <div id="content-${id}" style="display: none; margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 8px;">
                     <strong style="display: block; margin-bottom: 8px; color: #0f172a;">รายละเอียดเนื้อหา:</strong>
                     <div style="white-space: pre-line; line-height: 1.6;">${content}</div>
+                    
+                    <!-- 🎬 วิดีโอ (จะโชว์เมื่อกดเปิดเนื้อหา) -->
+                    ${videoHTML}
                 </div>
             `;
 
@@ -92,82 +107,44 @@ function toggleContent(id) {
         btn.style.background = '#2563eb';
     }
 }
+
 function searchLessons() {
   const searchInput = document.getElementById('lessonSearchInput').value.toLowerCase();
-  // ดึงการ์ดทั้งหมดที่อยู่ใน lessons-container
-  const lessonCards = document.querySelectorAll('#lessons-container > div');
+  const lessonCards = document.querySelectorAll('#lessons-container > div, #lessonContainer > div');
 
   lessonCards.forEach(card => {
     const cardText = card.textContent.toLowerCase();
     if (cardText.includes(searchInput)) {
-      card.style.display = ""; // แสดงผล
+      card.style.display = ""; 
     } else {
-      card.style.display = "none"; // ซ่อน
+      card.style.display = "none"; 
     }
   });
 }
-// 📌 ตัวอย่างโค้ดสร้างการ์ดบทเรียน
-function renderLessonCard(lesson) {
-    // เช็คว่าบทเรียนนี้มี image_url หรือไม่
-    const imageHTML = lesson.image_url 
-        ? `<img src="${lesson.image_url}" alt="${lesson.title}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">` 
-        : '';
-
-    // เช็คว่ามีวิดีโอหรือไม่
-    const videoHTML = lesson.video_url 
-        ? `<div style="margin-top: 10px;"><iframe width="100%" height="250" src="${lesson.video_url}" frameborder="0" allowfullscreen style="border-radius: 8px;"></iframe></div>` 
-        : '';
-
-    return `
-        <div class="lesson-card" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-            <span class="badge" style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${lesson.category || 'ทั่วไป'}</span>
-            <h3 style="margin: 8px 0;">${lesson.title}</h3>
-            <p style="color: #64748b;">${lesson.summary || ''}</p>
-            
-            <!-- 🖼️ ใส่ HTML รูปภาพตรงนี้ -->
-            ${imageHTML}
-
-            <div class="lesson-content">
-                <strong>รายละเอียดเนื้อหา:</strong>
-                <p>${lesson.content}</p>
-            </div>
-
-            <!-- 🎬 ใส่ HTML วิดีโอตรงนี้ -->
-            ${videoHTML}
-        </div>
-    `;
-}
-
 
 // ==========================================
 // 3. ฟังก์ชันจัดการคลังเอกสาร (Documents)
 // ==========================================
-
-// ตัวแปร Global สำหรับเก็บข้อมูลเอกสารทั้งหมดไว้นำมากรอง
 let allDocuments = [];
 
 async function loadDocuments() {
     try {
         const response = await fetch('/api/documents');
         const result = await response.json();
-        allDocuments = result.data || result; // บันทึกข้อมูลลงตัวแปร
+        allDocuments = result.data || result; 
 
-        // วาดตารางครั้งแรก
         renderDocumentTable(allDocuments);
-        
-        // เติมตัวเลือกปีงบประมาณลง Dropdown
         populateFiscalYearDropdown(allDocuments);
     } catch (err) {
         console.error('Error loading documents:', err);
     }
 }
 
-// ฟังก์ชันสำหรับวาดตารางเอกสาร
 function renderDocumentTable(docs) {
     const tableBody = document.getElementById('documentTableBody');
     if (!tableBody) return;
 
-    tableBody.innerHTML = ''; // ล้างข้อความ/ตารางเก่า
+    tableBody.innerHTML = ''; 
 
     if (!Array.isArray(docs) || docs.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 15px;">ไม่พบเอกสารที่ค้นหา</td></tr>';
@@ -191,13 +168,11 @@ function renderDocumentTable(docs) {
 }
 
 function populateFiscalYearDropdown(docs) {
-    // เปลี่ยน id เป็น docYearFilter
     const yearSelect = document.getElementById('docYearFilter');
     if (!yearSelect) return;
 
     const years = [...new Set(docs.map(d => d.fiscal_year).filter(Boolean))].sort((a, b) => b - a);
     
-    // ตั้งค่า option แรกเป็น value="all" ให้ตรงกับ HTML ของคุณ
     yearSelect.innerHTML = '<option value="all">-- ทุกปีงบประมาณ --</option>';
     years.forEach(year => {
         const option = document.createElement('option');
@@ -207,10 +182,7 @@ function populateFiscalYearDropdown(docs) {
     });
 }
 
-
-// ฟังก์ชันค้นหาและกรองข้อมูล
 function filterDocuments() {
-    // เปลี่ยนตรงนี้ให้ตรงกับ ID ใน HTML (docSearchInput และ docYearFilter)
     const searchInput = document.getElementById('docSearchInput');
     const yearSelect = document.getElementById('docYearFilter');
 
@@ -222,7 +194,6 @@ function filterDocuments() {
         const categoryMatch = (doc.category || '').toLowerCase().includes(searchTerm);
         const matchesSearch = titleMatch || categoryMatch;
 
-        // ถ้ารับค่าเป็น 'all' หรือค่าว่าง ให้แสดงทั้งหมด
         const matchesYear = (selectedYear === 'all' || selectedYear === '') || String(doc.fiscal_year) === selectedYear;
 
         return matchesSearch && matchesYear;
@@ -231,37 +202,15 @@ function filterDocuments() {
     renderDocumentTable(filteredDocs);
 }
 
-
 // ผูก Event Listener เมื่อโหลดหน้าเว็บเสร็จ
 document.addEventListener('DOMContentLoaded', () => {
-    loadDocuments();
+    const docSearchInput = document.getElementById('docSearchInput');
+    const docYearFilter = document.getElementById('docYearFilter');
 
-    const searchInput = document.getElementById('searchInput');
-    const yearSelect = document.getElementById('fiscalYearSelect');
-
-    // เมื่อพิมพ์ในช่องค้นหา ให้กรองทันทีแบบ Real-time
-    if (searchInput) {
-        searchInput.addEventListener('input', filterDocuments);
+    if (docSearchInput) {
+        docSearchInput.addEventListener('input', filterDocuments);
     }
-
-    // เมื่อเลือกปีงบประมาณ ให้กรองทันที
-    if (yearSelect) {
-        yearSelect.addEventListener('change', filterDocuments);
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    if (typeof loadLessons === 'function') loadLessons();
-    if (typeof loadDocuments === 'function') loadDocuments();
-
-    // ดึง ID ให้ตรงกับ HTML
-    const searchInput = document.getElementById('docSearchInput');
-    const yearSelect = document.getElementById('docYearFilter');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', filterDocuments);
-    }
-    if (yearSelect) {
-        yearSelect.addEventListener('change', filterDocuments);
+    if (docYearFilter) {
+        docYearFilter.addEventListener('change', filterDocuments);
     }
 });
