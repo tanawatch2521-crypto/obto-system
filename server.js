@@ -231,51 +231,24 @@ app.delete('/api/documents/:id', (req, res) => {
 
 
 
-app.post('/api/lessons', (req, res) => {
-    const { title, category, summary, content } = req.body;
-    db.run("INSERT INTO lessons (title, category, summary, content) VALUES (?, ?, ?, ?)",
-        [title, category, summary, content], function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
-        });
-});
-
-app.post('/api/analytics/view-lesson', (req, res) => {
-    const { lesson_id } = req.body;
-    db.run("UPDATE lessons SET views = views + 1 WHERE id = ?", [lesson_id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "บันทึกสถิติการอ่านแล้ว" });
-    });
-});
-
-app.get('/api/documents', (req, res) => {
-    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ data: rows });
-    });
-});
-// API สำหรับบวดยอดเข้าชม +1 เมื่อมีคนกดอ่านบทเรียน
-app.post('/api/lessons/:id/view', (req, res) => {
-    const lessonId = req.params.id;
-    db.run("UPDATE lessons SET views = COALESCE(views, 0) + 1 WHERE id = ?", [lessonId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: 'บันทึกการเข้าชมสำเร็จ' });
-    });
-});
-// API สำหรับเพิ่มบทเรียนใหม่เข้า Database
-app.post('/api/lessons', (req, res) => {
-    const { title, category, summary, content } = req.body;
+// API สำหรับเพิ่มบทเรียนใหม่ (รองรับการอัปโหลดรูปภาพ และลิงก์วิดีโอ)
+app.post('/api/lessons', upload.single('image'), (req, res) => {
+    const { title, category, summary, content, video_url } = req.body;
     
-    const sql = `INSERT INTO lessons (title, category, summary, content, views) VALUES (?, ?, ?, ?, 0)`;
+    // ถ้ามีการอัปโหลดรูปภาพ จะดึง path ไฟล์ เช่น /uploads/12345.jpg
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url, views) VALUES (?, ?, ?, ?, ?, ?, 0)`;
     
-    db.run(sql, [title, category, summary, content], function(err) {
+    db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
         if (err) {
             console.error("Error inserting lesson:", err.message);
             return res.status(500).json({ error: err.message });
         }
-        res.json({ message: "เพิ่มบทเรียนสำเร็จ", id: this.lastID });
+        res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
     });
 });
+
 
 app.post('/api/documents', upload.single('file'), (req, res) => {
     const { title, category, fiscal_year } = req.body;
