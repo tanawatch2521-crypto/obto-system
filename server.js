@@ -36,15 +36,17 @@ db.serialize(() => {
     )`);
 
     // 2. ตาราง Lessons (บทเรียน)
-    db.run(`CREATE TABLE IF NOT EXISTS lessons (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        category TEXT,
-        summary TEXT,
-        content TEXT,
-        views INTEGER DEFAULT 0,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+db.run(`CREATE TABLE IF NOT EXISTS lessons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    category TEXT,
+    summary TEXT,
+    content TEXT,
+    image_url TEXT,
+    video_url TEXT,
+    views INTEGER DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`);
 
     // 3. ตาราง Documents (เอกสารดาวน์โหลด)
     db.run(`CREATE TABLE IF NOT EXISTS documents (
@@ -160,17 +162,31 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-// API สำหรับบันทึกการแก้ไขบทเรียน
-app.put('/api/lessons/:id', (req, res) => {
+// API สำหรับบันทึกการแก้ไขบทเรียน (รองรับเปลี่ยนรูปและวิดีโอ)
+app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
     const { id } = req.params;
-    const { title, category, summary, content } = req.body;
+    const { title, category, summary, content, video_url } = req.body;
 
-    const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ? WHERE id = ?`;
-    db.run(sql, [title, category, summary, content, id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
-    });
+    // เช็กว่ามีรูปภาพใหม่ถูกอัปโหลดมาไหม
+    if (req.file) {
+        const image_url = `/uploads/${req.file.filename}`;
+        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        
+        db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+        });
+    } else {
+        // กรณีไม่ได้เปลี่ยนรูปใหม่ ให้แก้เฉพาะข้อมูลส่วนอื่น และ video_url
+        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        
+        db.run(sql, [title, category, summary, content, video_url, id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+        });
+    }
 });
+
 
 
 // API สำหรับลบบทเรียน
