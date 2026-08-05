@@ -218,6 +218,16 @@ app.delete('/api/documents/:id', (req, res) => {
         res.json({ message: "ลบเอกสารสำเร็จ" });
     });
 });
+// 🟢 API ดึงข้อมูลเอกสารทั้งหมด (สำหรับให้หน้าเว็บนำไปโชว์ในตาราง)
+app.get('/api/documents', (req, res) => {
+    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
+        if (err) {
+            console.error("Fetch documents error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows || []);
+    });
+});
 
 app.post('/api/analytics/download-doc/:id', (req, res) => {
     db.run("UPDATE documents SET downloads = downloads + 1 WHERE id = ?", [req.params.id], (err) => {
