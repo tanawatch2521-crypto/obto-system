@@ -37,7 +37,13 @@ async function loadLessons() {
             const title = lesson.title || 'ไม่มีหัวข้อ';
             const summary = lesson.summary || lesson.description || '-';
             const content = lesson.content || 'ไม่มีรายละเอียดเนื้อหาเพิ่มเติม';
+             const embedUrl = getEmbedYoutubeUrl(lesson.video_url);
             
+            const videoHTML = embedUrl 
+                ? `<div style="margin-top: 10px;">
+                     <iframe width="100%" height="250" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe>
+                   </div>` 
+                : '';
             // 🖼️ ตรวจสอบว่ามีรูปภาพหรือไม่
             const imageHTML = lesson.image_url 
                 ? `<img src="${lesson.image_url}" alt="${title}" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; margin: 12px 0;">` 
@@ -200,6 +206,24 @@ function filterDocuments() {
     });
 
     renderDocumentTable(filteredDocs);
+}
+// 📌 ฟังก์ชันแปลง URL จาก YouTube ปกติให้กลายเป็น Embed URL
+function getEmbedYoutubeUrl(url) {
+    if (!url) return '';
+    
+    // ถ้าใส่ลิงก์ embed มาอยู่แล้วให้ใช้ได้เลย
+    if (url.includes('youtube.com/embed/')) return url;
+
+    // ถ้าใส่ลิงก์ปกติ watch?v=
+    let videoId = '';
+    if (url.includes('v=')) {
+        videoId = url.split('v=')[1]?.split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+        // ถ้าเป็นลิงก์สั้น youtu.be/
+        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    }
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
 }
 
 // ผูก Event Listener เมื่อโหลดหน้าเว็บเสร็จ
