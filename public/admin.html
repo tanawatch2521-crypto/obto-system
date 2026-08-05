@@ -77,36 +77,35 @@
         </button>
     </div>
 </div>
-<!-- 📌 ตารางแสดงรายการบทเรียน -->
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <h5 class="fw-bold mb-3">📚 รายการบทเรียนทั้งหมด (จัดการ/ลบ)</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 80px;">ID</th>
-                        <th>หัวข้อบทเรียน</th>
-                        <th>หมวดหมู่</th>
-                        <th class="text-center">สื่อประกอบ</th>
-                        <th class="text-center" style="width: 150px;">จัดการ</th>
-                    </tr>
-                </thead>
-                
-                <!-- 📌 ใส่ ID นี้ตรง <tbody> ให้ตรงกับ admin.js ครับ -->
-                <tbody id="adminLessonsTable">
-                    <tr>
-                        <td colspan="5" class="text-center text-muted" style="padding: 15px;">
-                            กำลังโหลดข้อมูลบทเรียน...
-                        </td>
-                    </tr>
-                </tbody>
-
-            </table>
-        </div>
+<!-- 📌 ส่วนแสดงรายการบทเรียนทั้งหมด -->
+<div class="card mb-4 shadow-sm" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h3 style="margin-top: 0; color: #1e293b;">
+        <i class="fas fa-book-open"></i> รายการบทเรียนทั้งหมด (จัดการ/ลบ)
+    </h3>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
+                    <th style="padding: 12px 10px; width: 60px;">ID</th>
+                    <th style="padding: 12px 10px;">หัวข้อบทเรียน</th>
+                    <th style="padding: 12px 10px; width: 150px;">หมวดหมู่</th>
+                    <th style="padding: 12px 10px; width: 100px; text-align: center;">สื่อประกอบ</th>
+                    <th style="padding: 12px 10px; width: 120px; text-align: center;">จัดการ</th>
+                </tr>
+            </thead>
+            
+            <!-- 📌 ตัวสำคัญที่สุด: <tbody> ที่มี id="adminLessonsTable" -->
+            <tbody id="adminLessonsTable">
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">
+                        กำลังโหลดข้อมูลบทเรียน...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
-
 
     <!-- 📁 อัปโหลดเอกสาร -->
     <div class="card">
