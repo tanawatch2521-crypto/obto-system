@@ -1,7 +1,8 @@
 // ==========================================
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
-let quill; // ประกาศตัวแปรไว้รอ
+let quill;
+let editQuill; // 🟢 เพิ่มตัวแปรนี้เข้ามาครับ
 
 document.addEventListener('DOMContentLoaded', () => {
     // 🟢 1. เปิดใช้งาน Quill Editor เมื่อ DOM โหลดเสร็จเรียบร้อยแล้ว
@@ -20,6 +21,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 ]
             },
             placeholder: 'พิมพ์เนื้อหาบทเรียน... สามารถก๊อปปี้รูปภาพมาวาง หรือกดปุ่มรูปภาพเพื่อแทรกได้หลายๆ รูปเลยครับ'
+        });
+    }
+    // 🟢 เพิ่มส่วนนี้ใต้ quill ตัวแรกครับ
+    const editEditorContainer = document.getElementById('editEditor');
+    if (editEditorContainer && typeof Quill !== 'undefined') {
+        editQuill = new Quill('#editEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['image', 'link'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['clean']
+                ]
+            },
+            placeholder: 'แก้ไขเนื้อหาบทเรียน...'
         });
     }
 
@@ -169,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('editLessonTitle')?.value.trim();
             const category = document.getElementById('editLessonCategory')?.value.trim();
             const summary = document.getElementById('editLessonSummary')?.value.trim();
-            const content = document.getElementById('editLessonContent')?.value.trim();
+            const content = editQuill ? editQuill.root.innerHTML : '';
             const video_url = document.getElementById('editLessonVideo')?.value.trim();
             const imageInput = document.getElementById('editLessonImage');
             const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
@@ -402,10 +421,10 @@ async function openEditModal(id) {
         if (document.getElementById('editLessonVideo')) document.getElementById('editLessonVideo').value = lesson.video_url || '';
 
         // ถ้าหน้าแก้ไขมี Quill หรือ Textarea ให้ใส่เนื้อหาเดิมลงไป
-        const editContentInput = document.getElementById('editLessonContent');
-        if (editContentInput) {
-            editContentInput.value = lesson.content || '';
-        }
+        if (editQuill) {
+    editQuill.root.innerHTML = lesson.content || '';
+}
+
 
         // เปิดหน้าต่าง Pop-up Modal (เช็กตาม ID Modal ใน html ของคุณ)
         const modal = document.getElementById('editModal') || document.getElementById('editLessonModal');
