@@ -207,19 +207,26 @@ async function loadAdminLessons() {
 
         tableBody.innerHTML = '';
 
-        if (!Array.isArray(lessons) || lessons.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">ยังไม่มีบทเรียนในระบบ</td></tr>';
+        if (!Array.isArray(lessons) || lessons.length === === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ยังไม่มีบทเรียนในระบบ</td></tr>'; // 👈 colspan เปลี่ยนเป็น 5
             return;
         }
 
         lessons.forEach(lesson => {
             const tr = document.createElement('tr');
+            
+            // ตรวจสอบไอคอนสื่อประกอบ (รูปภาพ / วิดีโอ)
+            const hasImage = lesson.image_url ? '<i class="fas fa-image text-primary me-1" title="มีรูปภาพ"></i>' : '';
+            const hasVideo = lesson.video_url ? '<i class="fab fa-youtube text-danger me-1" title="มีวิดีโอ"></i>' : '';
+            const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '<span class="text-muted">-</span>';
+
             tr.innerHTML = `
                 <td>${lesson.id}</td>
-                <td>${lesson.title || 'ไม่มีหัวข้อ'}</td>
-                <td>${lesson.category || '-'}</td>
-                <td>
-                <button onclick="openEditModal(${lesson.id})" style="background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
+                <td><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
+                <td><span class="badge bg-secondary">${lesson.category || '-'}</span></td>
+                <td class="text-center" style="font-size: 1.1rem;">${mediaBadge}</td>
+                <td class="text-center">
+                    <button onclick="openEditModal(${lesson.id})" style="background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
                         ✏️ แก้ไข
                     </button>
                     <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
@@ -229,6 +236,11 @@ async function loadAdminLessons() {
             `;
             tableBody.appendChild(tr);
         });
+    } catch (err) {
+        console.error('Error loading admin lessons:', err);
+    }
+}
+
     } catch (err) {
         console.error('Error loading admin lessons:', err);
     }
@@ -355,33 +367,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const addLessonForm = document.getElementById('addLessonForm');
 
     if (addLessonForm) {
-        addLessonForm.addEventListener('submit', async (e) => {
+               addLessonForm.addEventListener('submit', async (e) => {
             e.preventDefault(); // ป้องกันไม่ให้หน้าเว็บรีเฟรชเอง
 
-            // ดึง Element โดยตรงจาก ID ใน admin.html
-            const titleEl = document.getElementById('lessonTitle');
-            const categoryEl = document.getElementById('lessonCategory');
-            const summaryEl = document.getElementById('lessonSummary');
-            const contentEl = document.getElementById('lessonContent');
-
-            // สร้าง Payload แบบดึงค่า .value ชัดเจน
-            const payload = {
-                title: titleEl ? titleEl.value : '',
-                category: categoryEl ? categoryEl.value : 'ทั่วไป',
-                summary: summaryEl ? summaryEl.value : '',
-                content: contentEl ? contentEl.value : ''
-            };
-
-            // แสดง Log ใน Console ดูว่าส่งหัวข้ออะไรไป (ไว้เช็กตอนกดบันทึก)
-            console.log('Sending lesson payload:', payload);
+            // ดึงข้อมูลทั้งหมดจากฟอร์มรวมถึงไฟล์รูปภาพและลิงก์วิดีโออัตโนมัติ
+            const formData = new FormData(addLessonForm);
 
             try {
                 const response = await fetch('/api/lessons', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    body: formData // ส่งเป็น FormData ตรงๆ (ไม่ต้องใส่ headers Content-Type)
                 });
 
                 const result = await response.json();
@@ -402,8 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
             }
         });
-    }
-});
+        });
 // เปิด Modal และดึงข้อมูลบทเรียนเดิมมาแสดง
 async function openEditModal(id) {
     try {
@@ -416,6 +410,14 @@ async function openEditModal(id) {
             document.getElementById('editLessonCategory').value = lesson.category || '';
             document.getElementById('editLessonSummary').value = lesson.summary || '';
             document.getElementById('editLessonContent').value = lesson.content || '';
+            
+            // ดึงลิงก์วิดีโอเดิมมาวาง (ถ้ามี Element id="editLessonVideo")
+            const videoEl = document.getElementById('editLessonVideo');
+            if (videoEl) videoEl.value = lesson.video_url || '';
+
+            // เคลียร์ช่องเลือกไฟล์รูปภาพใหม่
+            const imageEl = document.getElementById('editLessonImage');
+            if (imageEl) imageEl.value = '';
 
             document.getElementById('editLessonModal').style.display = 'flex';
         } else {
@@ -436,32 +438,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('editLessonForm');
     if (editForm) {
         editForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+                     e.preventDefault();
 
             const id = document.getElementById('editLessonId').value;
-            const payload = {
-                title: document.getElementById('editLessonTitle').value,
-                category: document.getElementById('editLessonCategory').value,
-                summary: document.getElementById('editLessonSummary').value,
-                content: document.getElementById('editLessonContent').value
-            };
+            
+            // ใช้ FormData ดึงข้อมูลทั้งหมดในฟอร์มแก้ไข (รวมทั้งไฟล์รูปภาพใหม่)
+            const formData = new FormData(editForm);
 
             try {
                 const response = await fetch(`/api/lessons/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: formData // ส่งเป็น FormData ตรงๆ (ห้ามใส่ headers Content-Type)
                 });
 
                 if (response.ok) {
                     alert('อัปเดตบทเรียนเรียบร้อยแล้ว!');
                     closeEditModal();
-                    if (typeof loadAdminLessons === 'function') loadAdminLessons();
+                    if (typeof loadAdminLessons === 'function') {
+                        loadAdminLessons();
+                    }
                 } else {
-                    alert('เกิดข้อผิดพลาดในการอัปเดต');
+                    const result = await response.json();
+                    alert('เกิดข้อผิดพลาดในการอัปเดต: ' + (result.error || ''));
                 }
             } catch (err) {
                 console.error('Error updating lesson:', err);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
             }
         });
     }
