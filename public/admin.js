@@ -239,20 +239,15 @@ async function deleteDocument(id) {
 // 📚 โหลดบทเรียน (Lessons)
 // ==========================================
 async function loadAdminLessons() {
-    // ดึง tbody จาก ID
-    const tableBody = document.getElementById('adminLessonsTable');
-    if (!tableBody) {
-        console.error('ไม่พบแท็ก <tbody id="adminLessonsTable"> ใน HTML');
-        return;
-    }
+    const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
+    if (!tableBody) return;
 
     try {
         const response = await fetch('/api/lessons');
         const result = await response.json();
         const lessons = Array.isArray(result) ? result : (result.data || []);
 
-        tableBody.innerHTML = ''; // ล้างคำว่า "กำลังโหลดข้อมูล..."
-        
+        tableBody.innerHTML = '';
         if (!lessons || lessons.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">ยังไม่มีบทเรียนในระบบ</td></tr>';
             return;
@@ -266,13 +261,17 @@ async function loadAdminLessons() {
             const hasVideo = lesson.video_url ? '🎬' : '';
             const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '-';
 
+            // 📌 ใส่ทั้งปุ่ม "แก้ไข" และปุ่ม "ลบ" กลับเข้ามาตรงนี้ครับ
             tr.innerHTML = `
                 <td style="padding: 12px 10px;">${lesson.id}</td>
                 <td style="padding: 12px 10px;"><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
                 <td style="padding: 12px 10px;"><span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 13px;">${lesson.category || '-'}</span></td>
                 <td style="padding: 12px 10px; text-align: center;">${mediaBadge}</td>
-                <td style="padding: 12px 10px; text-align: center;">
-                    <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
+                    <button onclick="openEditModal(${lesson.id})" style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
+                        ✏️ แก้ไข
+                    </button>
+                    <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">
                         🗑️ ลบ
                     </button>
                 </td>
@@ -281,7 +280,6 @@ async function loadAdminLessons() {
         });
     } catch (err) {
         console.error('Error loading admin lessons:', err);
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red; padding: 20px;">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
     }
 }
 
