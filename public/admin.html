@@ -81,15 +81,15 @@
     <div class="card-body">
         <h5 class="fw-bold mb-3">📚 รายการบทเรียนทั้งหมด (จัดการ/ลบ)</h5>
         <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width: 80px;">ID</th>
-                        <th>หัวข้อบทเรียน</th>
-                        <th>หมวดหมู่</th>
-                        <th style="width: 100px;" class="text-center">จัดการ</th>
-                    </tr>
-                </thead>
+                     <thead class="table-light">
+            <tr>
+              <th style="width: 60px;">ID</th>
+              <th>หัวข้อบทเรียน</th>
+              <th>หมวดหมู่</th>
+              <th style="width: 120px;" class="text-center">สื่อประกอบ</th> <!-- 👈 เพิ่มคอลัมน์นี้ -->
+              <th style="width: 150px;" class="text-center">จัดการ</th>
+            </tr>
+          </thead>
                 <tbody id="adminLessonsTable">
                     <!-- รายการบทเรียนพร้อมปุ่มลบจะเด้งมาตรงนี้ -->
                 </tbody>
@@ -218,6 +218,17 @@
                 <label>รายละเอียดเนื้อหา:</label>
                 <textarea id="editLessonContent" class="form-control" rows="5" style="width: 100%; padding: 8px; margin-top: 5px;"></textarea>
             </div>
+          <!-- 📸 ช่องเปลี่ยนรูปภาพประกอบ -->
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label>เปลี่ยนรูปภาพประกอบ (ถ้าต้องการเปลี่ยน):</label>
+            <input type="file" id="editLessonImage" name="image" class="form-control" accept="image/*" style="width: 100%; padding: 8px; margin-top: 5px;">
+          </div>
+
+          <!-- 🎥 ช่องแก้ไขลิงก์วิดีโอ YouTube -->
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
+            <input type="url" id="editLessonVideo" name="video_url" class="form-control" placeholder="https://www.youtube.com/embed/..." style="width: 100%; padding: 8px; margin-top: 5px;">
+          </div>
 
             <div style="text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
                 <button type="button" onclick="closeEditModal()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">ยกเลิก</button>
