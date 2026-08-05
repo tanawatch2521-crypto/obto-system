@@ -159,6 +159,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+    // 5. ฟอร์มบันทึกการแก้ไขบทเรียน (Update Lesson)
+    const editLessonForm = document.getElementById('editLessonForm');
+    if (editLessonForm) {
+        editLessonForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('editLessonId')?.value;
+            const title = document.getElementById('editLessonTitle')?.value.trim();
+            const category = document.getElementById('editLessonCategory')?.value.trim();
+            const summary = document.getElementById('editLessonSummary')?.value.trim();
+            const content = document.getElementById('editLessonContent')?.value.trim();
+            const video_url = document.getElementById('editLessonVideo')?.value.trim();
+            const imageInput = document.getElementById('editLessonImage');
+            const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', category);
+            formData.append('summary', summary);
+            formData.append('content', content);
+            formData.append('video_url', video_url);
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                const response = await fetch(`/api/lessons/${id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('อัปเดตบทเรียนสำเร็จ!');
+                    closeEditModal();
+                    loadAdminLessons(); // โหลดตารางใหม่
+                } else {
+                    alert('เกิดข้อผิดพลาดในการอัปเดตบทเรียน');
+                }
+            } catch (err) {
+                console.error('Error updating lesson:', err);
+                alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+            }
+        });
+    }
 
 // ==========================================
 // 👥 โหลดผู้ใช้งาน (Users)
@@ -332,5 +376,55 @@ async function deleteLesson(id) {
         }
     } catch (err) {
         console.error('Error deleting lesson:', err);
+    }
+}
+// ==========================================
+// ✏️ ระบบแก้ไขบทเรียน (Edit Lesson Modal)
+// ==========================================
+
+// 1. ดึงข้อมูลบทเรียนมาใส่ใน Pop-up แก้ไข
+async function openEditModal(id) {
+    try {
+        const response = await fetch(`/api/lessons/${id}`);
+        const result = await response.json();
+        const lesson = result.data || result;
+
+        if (!lesson) {
+            alert('ไม่พบข้อมูลบทเรียน');
+            return;
+        }
+
+        // เอาข้อมูลไปหยอดใส่ Input ใน Modal แก้ไข
+        if (document.getElementById('editLessonId')) document.getElementById('editLessonId').value = lesson.id;
+        if (document.getElementById('editLessonTitle')) document.getElementById('editLessonTitle').value = lesson.title || '';
+        if (document.getElementById('editLessonCategory')) document.getElementById('editLessonCategory').value = lesson.category || '';
+        if (document.getElementById('editLessonSummary')) document.getElementById('editLessonSummary').value = lesson.summary || '';
+        if (document.getElementById('editLessonVideo')) document.getElementById('editLessonVideo').value = lesson.video_url || '';
+
+        // ถ้าหน้าแก้ไขมี Quill หรือ Textarea ให้ใส่เนื้อหาเดิมลงไป
+        const editContentInput = document.getElementById('editLessonContent');
+        if (editContentInput) {
+            editContentInput.value = lesson.content || '';
+        }
+
+        // เปิดหน้าต่าง Pop-up Modal (เช็กตาม ID Modal ใน html ของคุณ)
+        const modal = document.getElementById('editModal') || document.getElementById('editLessonModal');
+        if (modal) {
+            modal.style.display = 'flex'; // หรือ 'block' ตามสไตล์ CSS หน้าเว็บคุณ
+        } else {
+            alert('เปิด Modal แก้ไขไม่ได้: ไม่พบ element ID #editModal ใน html');
+        }
+
+    } catch (err) {
+        console.error('Error fetching lesson details:', err);
+        alert('เกิดข้อผิดพลาดในการโหลดข้อมูลบทเรียน');
+    }
+}
+
+// 2. ฟังก์ชันปิด Pop-up Modal แก้ไข
+function closeEditModal() {
+    const modal = document.getElementById('editModal') || document.getElementById('editLessonModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
