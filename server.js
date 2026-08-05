@@ -61,15 +61,15 @@ db.serialize(() => {
         video_url TEXT,
         views INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-        // 📌 บังคับเพิ่มคอลัมน์ image_url ในตาราง lessons (ถ้ายังไม่มี)
+    )`);        // 📌 บังคับเพิ่มคอลัมน์ image_url และ video_url ในตาราง lessons (กันฐานข้อมูลเก่าตกหล่น)
         db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
-            if (err) {
-                // ถ้าคอลัมน์มีอยู่แล้ว SQLite จะแจ้ง error ซึ่งข้ามได้เลยครับ
-                console.log("Column image_url is ready.");
-            } else {
-                console.log("Added image_url column successfully!");
-            }
+            if (err) console.log("Column image_url ready.");
+            else console.log("Added image_url column successfully!");
+        });
+
+        db.run("ALTER TABLE lessons ADD COLUMN video_url TEXT", (err) => {
+            if (err) console.log("Column video_url ready.");
+            else console.log("Added video_url column successfully!");
         });
 
     // ตาราง Documents
