@@ -1,72 +1,47 @@
 // ==========================================
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
-// --------------------------------------
-// บันทึกบทเรียน (ใช้ FormData แบบ Manual)
-// --------------------------------------
+
 document.addEventListener('DOMContentLoaded', () => {
+    // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้าเว็บ
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
-    const btnSaveLesson = document.getElementById('btnSaveLesson');
+    // 1. ฟอร์มเพิ่มผู้ใช้งาน
+    const addUserForm = document.getElementById('addUserForm');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username')?.value.trim();
+            const password = document.getElementById('password')?.value.trim();
+            const fullname = document.getElementById('fullname')?.value.trim();
 
-    if (btnSaveLesson) {
-        btnSaveLesson.addEventListener('click', async () => {
-            const title = document.getElementById('lessonTitle')?.value.trim();
-            const category = document.getElementById('lessonCategory')?.value.trim();
-            const summary = document.getElementById('lessonSummary')?.value.trim();
-            const content = document.getElementById('lessonContent')?.value.trim();
-            const video_url = document.getElementById('lessonVideo')?.value.trim();
-            const imageFile = document.getElementById('lessonImage')?.files[0];
-
-            if (!title) {
-                alert('กรุณากรอกหัวข้อบทเรียน');
+            if (!username || !password) {
+                alert('กรุณากรอก Username และ Password ให้ครบถ้วน');
                 return;
             }
 
-            // สร้าง FormData ส่งไปยัง API
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('category', category);
-            formData.append('summary', summary);
-            formData.append('content', content);
-            formData.append('video_url', video_url);
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
             try {
-                const response = await fetch('/api/lessons', {
+                const response = await fetch('/api/users', {
                     method: 'POST',
-                    body: formData
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, fullname })
                 });
-
                 const result = await response.json();
-
                 if (response.ok) {
-                    alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
-                    
-                    // ล้างค่าในช่องกรอก
-                    document.getElementById('lessonTitle').value = '';
-                    document.getElementById('lessonCategory').value = '';
-                    document.getElementById('lessonSummary').value = '';
-                    document.getElementById('lessonContent').value = '';
-                    document.getElementById('lessonVideo').value = '';
-                    document.getElementById('lessonImage').value = '';
-
-                    // โหลดตารางใหม่
-                    loadAdminLessons();
+                    alert('เพิ่มผู้ใช้งานสำเร็จ!');
+                    addUserForm.reset();
+                    loadUsers();
                 } else {
-                    alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถบันทึกได้'));
+                    alert(result.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน');
                 }
             } catch (err) {
-                console.error('Error adding lesson:', err);
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+                console.error('Error adding user:', err);
+                alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
             }
         });
     }
-});
 
     // 2. ฟอร์มอัปโหลดเอกสาร
     const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
@@ -93,56 +68,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. ฟอร์มเพิ่มบทเรียน
-    const addLessonForm = document.getElementById('addLessonForm');
-    if (addLessonForm) {
-        addLessonForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(addLessonForm);
+    // 3. ปุ่มบันทึกบทเรียน
+    const btnSaveLesson = document.getElementById('btnSaveLesson');
+    if (btnSaveLesson) {
+        btnSaveLesson.addEventListener('click', async () => {
+            const title = document.getElementById('lessonTitle')?.value.trim();
+            const category = document.getElementById('lessonCategory')?.value.trim();
+            const summary = document.getElementById('lessonSummary')?.value.trim();
+            const content = document.getElementById('lessonContent')?.value.trim();
+            const video_url = document.getElementById('lessonVideo')?.value.trim();
+            const imageFile = document.getElementById('lessonImage')?.files[0];
+
+            if (!title) {
+                alert('กรุณากรอกหัวข้อบทเรียน');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', category);
+            formData.append('summary', summary);
+            formData.append('content', content);
+            formData.append('video_url', video_url);
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
 
             try {
                 const response = await fetch('/api/lessons', {
                     method: 'POST',
                     body: formData
                 });
+
                 const result = await response.json();
+
                 if (response.ok) {
                     alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
-                    addLessonForm.reset();
+                    if (document.getElementById('lessonTitle')) document.getElementById('lessonTitle').value = '';
+                    if (document.getElementById('lessonCategory')) document.getElementById('lessonCategory').value = '';
+                    if (document.getElementById('lessonSummary')) document.getElementById('lessonSummary').value = '';
+                    if (document.getElementById('lessonContent')) document.getElementById('lessonContent').value = '';
+                    if (document.getElementById('lessonVideo')) document.getElementById('lessonVideo').value = '';
+                    if (document.getElementById('lessonImage')) document.getElementById('lessonImage').value = '';
+
                     loadAdminLessons();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถบันทึกได้'));
                 }
             } catch (err) {
                 console.error('Error adding lesson:', err);
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-            }
-        });
-    }
-
-    // 4. ฟอร์มแก้ไขบทเรียน
-    const editForm = document.getElementById('editLessonForm');
-    if (editForm) {
-        editForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editLessonId').value;
-            const formData = new FormData(editForm);
-
-            try {
-                const response = await fetch(`/api/lessons/${id}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-                if (response.ok) {
-                    alert('อัปเดตบทเรียนเรียบร้อยแล้ว!');
-                    closeEditModal();
-                    loadAdminLessons();
-                } else {
-                    const result = await response.json();
-                    alert('เกิดข้อผิดพลาดในการอัปเดต: ' + (result.error || ''));
-                }
-            } catch (err) {
-                console.error('Error updating lesson:', err);
                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
             }
         });
@@ -173,7 +147,7 @@ async function loadUsers() {
             const isMainAdmin = (user.id === 1 || user.username === 'admin');
             const deleteBtnHTML = isMainAdmin
                 ? `<span style="color: #94a3b8; font-size: 13px;">🔒 ห้ามลบ</span>`
-                : `<button onclick="deleteUser(${user.id})" class="btn-danger" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px;">ลบ</button>`;
+                : `<button onclick="deleteUser(${user.id})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">ลบ</button>`;
 
             row.innerHTML = `
                 <td>${user.id}</td>
@@ -320,40 +294,4 @@ async function deleteLesson(id) {
     } catch (err) {
         console.error('Error deleting lesson:', err);
     }
-}
-
-// ==========================================
-// ✏️ Modal แก้ไข
-// ==========================================
-async function openEditModal(id) {
-    try {
-        const response = await fetch(`/api/lessons/${id}`);
-        const lesson = await response.json();
-
-        if (response.ok) {
-            if(document.getElementById('editLessonId')) document.getElementById('editLessonId').value = lesson.id;
-            if(document.getElementById('editLessonTitle')) document.getElementById('editLessonTitle').value = lesson.title || '';
-            if(document.getElementById('editLessonCategory')) document.getElementById('editLessonCategory').value = lesson.category || '';
-            if(document.getElementById('editLessonSummary')) document.getElementById('editLessonSummary').value = lesson.summary || '';
-            if(document.getElementById('editLessonContent')) document.getElementById('editLessonContent').value = lesson.content || '';
-
-            const videoEl = document.getElementById('editLessonVideo');
-            if (videoEl) videoEl.value = lesson.video_url || '';
-
-            const imageEl = document.getElementById('editLessonImage');
-            if (imageEl) imageEl.value = '';
-
-            const modal = document.getElementById('editLessonModal');
-            if (modal) modal.style.display = 'flex';
-        } else {
-            alert('ไม่สามารถดึงข้อมูลบทเรียนได้');
-        }
-    } catch (err) {
-        console.error('Error fetching lesson:', err);
-    }
-}
-
-function closeEditModal() {
-    const modal = document.getElementById('editLessonModal');
-    if (modal) modal.style.display = 'none';
 }
