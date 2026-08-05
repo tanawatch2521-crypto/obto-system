@@ -59,7 +59,6 @@ db.serialize(() => {
         content TEXT,
         image_url TEXT,
         video_url TEXT,
-        views INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);        // 📌 บังคับเพิ่มคอลัมน์ image_url และ video_url ในตาราง lessons (กันฐานข้อมูลเก่าตกหล่น)
         db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
@@ -173,11 +172,12 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     const { title, category, summary, content, video_url } = req.body;
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url, views) VALUES (?, ?, ?, ?, ?, ?, 0)`;
-    db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
-    });
+    // 🟢 โค้ดใหม่ (ตัด views ออกแล้ว):
+const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
+db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
+});
 });
 
 app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
