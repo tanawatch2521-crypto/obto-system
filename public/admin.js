@@ -1,31 +1,40 @@
 // ==========================================
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
-
 // --------------------------------------
-// บันทึกบทเรียน (ผูกตรงกับปุ่ม type="button")
+// บันทึกบทเรียน (ใช้ FormData แบบ Manual)
 // --------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    // โหลดตารางเมื่อเปิดหน้าเว็บ
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
     const btnSaveLesson = document.getElementById('btnSaveLesson');
-    const addLessonForm = document.getElementById('addLessonForm');
 
-    if (btnSaveLesson && addLessonForm) {
-        btnSaveLesson.addEventListener('click', async (e) => {
-            e.preventDefault();
+    if (btnSaveLesson) {
+        btnSaveLesson.addEventListener('click', async () => {
+            const title = document.getElementById('lessonTitle')?.value.trim();
+            const category = document.getElementById('lessonCategory')?.value.trim();
+            const summary = document.getElementById('lessonSummary')?.value.trim();
+            const content = document.getElementById('lessonContent')?.value.trim();
+            const video_url = document.getElementById('lessonVideo')?.value.trim();
+            const imageFile = document.getElementById('lessonImage')?.files[0];
 
-            // ดึงค่ามาเช็คว่ากรอกหัวข้อหรือยัง
-            const titleInput = document.getElementById('lessonTitle');
-            if (titleInput && !titleInput.value.trim()) {
+            if (!title) {
                 alert('กรุณากรอกหัวข้อบทเรียน');
                 return;
             }
 
-            const formData = new FormData(addLessonForm);
+            // สร้าง FormData ส่งไปยัง API
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', category);
+            formData.append('summary', summary);
+            formData.append('content', content);
+            formData.append('video_url', video_url);
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
 
             try {
                 const response = await fetch('/api/lessons', {
@@ -37,12 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
-                    addLessonForm.reset();
                     
-                    // ล้าง Query String บน URL ออกให้สะอาด
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    
-                    // โหลดรายการตารางใหม่ทันที
+                    // ล้างค่าในช่องกรอก
+                    document.getElementById('lessonTitle').value = '';
+                    document.getElementById('lessonCategory').value = '';
+                    document.getElementById('lessonSummary').value = '';
+                    document.getElementById('lessonContent').value = '';
+                    document.getElementById('lessonVideo').value = '';
+                    document.getElementById('lessonImage').value = '';
+
+                    // โหลดตารางใหม่
                     loadAdminLessons();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถบันทึกได้'));
@@ -54,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
 
     // 2. ฟอร์มอัปโหลดเอกสาร
     const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
