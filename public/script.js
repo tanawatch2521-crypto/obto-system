@@ -1,13 +1,44 @@
 // ==========================================
-// 1. โหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
+// 1. ฟังก์ชันช่วยแปลง URL YouTube เป็น Embed URL
+// ==========================================
+function getEmbedYoutubeUrl(url) {
+    if (!url) return '';
+    
+    // ถ้าใส่ลิงก์ embed มาอยู่แล้ว
+    if (url.includes('youtube.com/embed/')) return url;
+
+    // แปลงจากลิงก์ watch?v= หรือ youtu.be/
+    let videoId = '';
+    if (url.includes('v=')) {
+        videoId = url.split('v=')[1]?.split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    }
+
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+}
+
+// ==========================================
+// 2. โหลดข้อมูลเมื่อเปิดหน้าเว็บ
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     loadLessons();
     loadDocuments();
+
+    // ผูกระบบค้นหาเอกสาร
+    const docSearchInput = document.getElementById('docSearchInput');
+    const docYearFilter = document.getElementById('docYearFilter');
+
+    if (docSearchInput) {
+        docSearchInput.addEventListener('input', filterDocuments);
+    }
+    if (docYearFilter) {
+        docYearFilter.addEventListener('change', filterDocuments);
+    }
 });
 
 // ==========================================
-// 2. ฟังก์ชันจัดการบทเรียน (Lessons)
+// 3. ฟังก์ชันจัดการบทเรียน (Lessons)
 // ==========================================
 async function loadLessons() {
     try {
@@ -20,7 +51,7 @@ async function loadLessons() {
         const container = document.getElementById('lessons-container') || document.getElementById('lessonContainer');
         if (!container) return;
 
-        container.innerHTML = ''; 
+        container.innerHTML = ''; // ล้างข้อความกำลังโหลด
 
         if (!Array.isArray(lessons) || lessons.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">ไม่มีบทเรียนในระบบ</p>';
@@ -37,40 +68,35 @@ async function loadLessons() {
             const title = lesson.title || 'ไม่มีหัวข้อ';
             const summary = lesson.summary || lesson.description || '-';
             const content = lesson.content || 'ไม่มีรายละเอียดเนื้อหาเพิ่มเติม';
-             const embedUrl = getEmbedYoutubeUrl(lesson.video_url);
             
-            const videoHTML = embedUrl 
-                ? `<div style="margin-top: 10px;">
-                     <iframe width="100%" height="250" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe>
-                   </div>` 
-                : '';
-            // 🖼️ ตรวจสอบว่ามีรูปภาพหรือไม่
+            // 🖼️ ตรวจสอบรูปภาพ
             const imageHTML = lesson.image_url 
                 ? `<img src="${lesson.image_url}" alt="${title}" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; margin: 12px 0;">` 
                 : '';
 
-            // 🎬 ตรวจสอบว่ามีวิดีโอหรือไม่
-            const videoHTML = lesson.video_url 
-                ? `<div style="margin-top: 10px;"><iframe width="100%" height="220" src="${lesson.video_url}" frameborder="0" allowfullscreen style="border-radius: 8px;"></iframe></div>` 
+            // 🎬 ตรวจสอบวิดีโอ (พร้อมแปลงลิงก์ YouTube)
+            const embedUrl = getEmbedYoutubeUrl(lesson.video_url);
+            const videoHTML = embedUrl 
+                ? `<div style="margin-top: 15px;"><iframe width="100%" height="250" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe></div>` 
                 : '';
 
             card.innerHTML = `
-                <!-- 1. หมวดหมู่ -->
+                <!-- หมวดหมู่ -->
                 <span style="background: #2563eb; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">
                     ${category}
                 </span>
 
-                <!-- 2. หัวข้อบทเรียน -->
+                <!-- หัวข้อบทเรียน -->
                 <h3 style="margin: 10px 0 8px 0; font-size: 18px; color: #1e293b; font-weight: bold;">
                     ${title}
                 </h3>
 
-                <!-- 3. บทสรุป -->
+                <!-- บทสรุป -->
                 <p style="color: #64748b; font-size: 14px; margin-bottom: 12px;">
                     ${summary}
                 </p>
 
-                <!-- 🖼️ รูปภาพประกอบบทเรียน (แสดงหน้าการ์ด) -->
+                <!-- รูปภาพประกอบ -->
                 ${imageHTML}
 
                 <!-- ปุ่มอ่านเพิ่มเติม -->
@@ -78,12 +104,10 @@ async function loadLessons() {
                     📖 อ่านเนื้อหาเพิ่มเติม
                 </button>
 
-                <!-- 4. ส่วนรายละเอียดเนื้อหา (ซ่อนไว้ก่อน) -->
+                <!-- ส่วนรายละเอียดเนื้อหา (ซ่อนไว้ก่อน) -->
                 <div id="content-${id}" style="display: none; margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 8px;">
                     <strong style="display: block; margin-bottom: 8px; color: #0f172a;">รายละเอียดเนื้อหา:</strong>
                     <div style="white-space: pre-line; line-height: 1.6;">${content}</div>
-                    
-                    <!-- 🎬 วิดีโอ (จะโชว์เมื่อกดเปิดเนื้อหา) -->
                     ${videoHTML}
                 </div>
             `;
@@ -115,21 +139,17 @@ function toggleContent(id) {
 }
 
 function searchLessons() {
-  const searchInput = document.getElementById('lessonSearchInput').value.toLowerCase();
+  const searchInput = document.getElementById('lessonSearchInput')?.value.toLowerCase() || '';
   const lessonCards = document.querySelectorAll('#lessons-container > div, #lessonContainer > div');
 
   lessonCards.forEach(card => {
     const cardText = card.textContent.toLowerCase();
-    if (cardText.includes(searchInput)) {
-      card.style.display = ""; 
-    } else {
-      card.style.display = "none"; 
-    }
+    card.style.display = cardText.includes(searchInput) ? "" : "none";
   });
 }
 
 // ==========================================
-// 3. ฟังก์ชันจัดการคลังเอกสาร (Documents)
+// 4. ฟังก์ชันจัดการคลังเอกสาร (Documents)
 // ==========================================
 let allDocuments = [];
 
@@ -207,34 +227,3 @@ function filterDocuments() {
 
     renderDocumentTable(filteredDocs);
 }
-// 📌 ฟังก์ชันแปลง URL จาก YouTube ปกติให้กลายเป็น Embed URL
-function getEmbedYoutubeUrl(url) {
-    if (!url) return '';
-    
-    // ถ้าใส่ลิงก์ embed มาอยู่แล้วให้ใช้ได้เลย
-    if (url.includes('youtube.com/embed/')) return url;
-
-    // ถ้าใส่ลิงก์ปกติ watch?v=
-    let videoId = '';
-    if (url.includes('v=')) {
-        videoId = url.split('v=')[1]?.split('&')[0];
-    } else if (url.includes('youtu.be/')) {
-        // ถ้าเป็นลิงก์สั้น youtu.be/
-        videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    }
-
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
-}
-
-// ผูก Event Listener เมื่อโหลดหน้าเว็บเสร็จ
-document.addEventListener('DOMContentLoaded', () => {
-    const docSearchInput = document.getElementById('docSearchInput');
-    const docYearFilter = document.getElementById('docYearFilter');
-
-    if (docSearchInput) {
-        docSearchInput.addEventListener('input', filterDocuments);
-    }
-    if (docYearFilter) {
-        docYearFilter.addEventListener('change', filterDocuments);
-    }
-});
