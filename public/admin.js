@@ -1,19 +1,18 @@
 // ==========================================
-// 1. โหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
+// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
+
 document.addEventListener('DOMContentLoaded', () => {
+    // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้าเว็บ
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
-    // --------------------------------------
-    // ฟอร์มเพิ่มผู้ใช้งานใหม่
-    // --------------------------------------
+    // 1. ฟอร์มเพิ่มผู้ใช้งาน
     const addUserForm = document.getElementById('addUserForm');
     if (addUserForm) {
         addUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const username = document.getElementById('username')?.value.trim();
             const password = document.getElementById('password')?.value.trim();
             const fullname = document.getElementById('fullname')?.value.trim();
@@ -29,9 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, fullname })
                 });
-
                 const result = await response.json();
-
                 if (response.ok) {
                     alert('เพิ่มผู้ใช้งานสำเร็จ!');
                     addUserForm.reset();
@@ -46,10 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --------------------------------------
-    // ฟอร์มอัปโหลดเอกสาร
-    // --------------------------------------
-    const docForm = document.getElementById('documentForm');
+    // 2. ฟอร์มอัปโหลดเอกสาร
+    const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
     if (docForm) {
         docForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -60,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     body: formData
                 });
-
                 if (response.ok) {
                     alert('อัปโหลดเอกสารสำเร็จ!');
                     docForm.reset();
@@ -74,9 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --------------------------------------
-    // ฟอร์มเพิ่มบทเรียนใหม่
-    // --------------------------------------
+    // 3. ฟอร์มเพิ่มบทเรียน
     const addLessonForm = document.getElementById('addLessonForm');
     if (addLessonForm) {
         addLessonForm.addEventListener('submit', async (e) => {
@@ -88,9 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     body: formData
                 });
-
                 const result = await response.json();
-
                 if (response.ok) {
                     alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
                     addLessonForm.reset();
@@ -105,9 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --------------------------------------
-    // ฟอร์มแก้ไขบทเรียน
-    // --------------------------------------
+    // 4. ฟอร์มแก้ไขบทเรียน
     const editForm = document.getElementById('editLessonForm');
     if (editForm) {
         editForm.addEventListener('submit', async (e) => {
@@ -120,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'PUT',
                     body: formData
                 });
-
                 if (response.ok) {
                     alert('อัปเดตบทเรียนเรียบร้อยแล้ว!');
                     closeEditModal();
@@ -138,22 +125,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 2. ฟังก์ชันจัดการผู้ใช้งาน (Users)
+// 👥 โหลดผู้ใช้งาน (Users)
 // ==========================================
 async function loadUsers() {
+    const userTableBody = document.getElementById('userTableBody') || document.getElementById('adminUserTableBody');
+    if (!userTableBody) return;
+
     try {
         const response = await fetch('/api/users');
-        if (!response.ok) throw new Error('Network response was not ok');
-
         const result = await response.json();
         const users = result.data || result;
 
-        const userTableBody = document.getElementById('userTableBody');
-        if (!userTableBody) return;
-
         userTableBody.innerHTML = '';
-
-        if (!users || users.length === 0) {
+        if (!Array.isArray(users) || users.length === 0) {
             userTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 15px;">ไม่พบผู้ใช้งาน</td></tr>';
             return;
         }
@@ -162,10 +146,9 @@ async function loadUsers() {
             const row = document.createElement('tr');
             const displayName = user.fullname || user.name || '-';
             const isMainAdmin = (user.id === 1 || user.username === 'admin');
-
             const deleteBtnHTML = isMainAdmin
                 ? `<span style="color: #94a3b8; font-size: 13px;">🔒 ห้ามลบ</span>`
-                : `<button onclick="deleteUser(${user.id})" class="btn-danger">ลบ</button>`;
+                : `<button onclick="deleteUser(${user.id})" class="btn-danger" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px;">ลบ</button>`;
 
             row.innerHTML = `
                 <td>${user.id}</td>
@@ -175,13 +158,8 @@ async function loadUsers() {
             `;
             userTableBody.appendChild(row);
         });
-
     } catch (err) {
         console.error('Error loading users:', err);
-        const userTableBody = document.getElementById('userTableBody');
-        if (userTableBody) {
-            userTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red; padding: 15px;">เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้งาน</td></tr>';
-        }
     }
 }
 
@@ -190,7 +168,6 @@ async function deleteUser(id) {
         alert('ไม่สามารถลบบัญชี Admin หลักของระบบได้!');
         return;
     }
-
     if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้?')) return;
 
     try {
@@ -204,15 +181,14 @@ async function deleteUser(id) {
         }
     } catch (err) {
         console.error('Error deleting user:', err);
-        alert('เกิดข้อผิดพลาดในการลบผู้ใช้งาน');
     }
 }
 
 // ==========================================
-// 3. ฟังก์ชันจัดการเอกสาร (Documents)
+// 📄 โหลดเอกสาร (Documents)
 // ==========================================
 async function loadAdminDocuments() {
-    const docTableBody = document.getElementById('docTableBody');
+    const docTableBody = document.getElementById('adminDocTableBody') || document.getElementById('docTableBody');
     if (!docTableBody) return;
 
     try {
@@ -221,7 +197,6 @@ async function loadAdminDocuments() {
         const docs = Array.isArray(result) ? result : (result.data || []);
 
         docTableBody.innerHTML = '';
-
         if (!docs || docs.length === 0) {
             docTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px;">ยังไม่มีเอกสารในระบบ</td></tr>`;
             return;
@@ -242,7 +217,6 @@ async function loadAdminDocuments() {
             `;
             docTableBody.appendChild(tr);
         });
-
     } catch (err) {
         console.error('Error loading documents:', err);
     }
@@ -250,7 +224,6 @@ async function loadAdminDocuments() {
 
 async function deleteDocument(id) {
     if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) return;
-
     try {
         const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
         if (response.ok) {
@@ -265,13 +238,10 @@ async function deleteDocument(id) {
 }
 
 // ==========================================
-// 📚 โหลดรายการบทเรียน (Lessons)
+// 📚 โหลดบทเรียน (Lessons)
 // ==========================================
 async function loadAdminLessons() {
-    // 📌 ดักจับ ID ตารางบทเรียนทุกชื่อที่เป็นไปได้
-    const tableBody = document.getElementById('adminLessonsTable') || 
-                      document.getElementById('adminLessonTableBody') || 
-                      document.getElementById('lessonTableBody');
+    const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
     if (!tableBody) return;
 
     try {
@@ -280,7 +250,6 @@ async function loadAdminLessons() {
         const lessons = Array.isArray(result) ? result : (result.data || []);
 
         tableBody.innerHTML = '';
-
         if (!lessons || lessons.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:15px;">ยังไม่มีบทเรียนในระบบ</td></tr>';
             return;
@@ -313,52 +282,8 @@ async function loadAdminLessons() {
     }
 }
 
-// ==========================================
-// 📄 โหลดรายการเอกสาร (Documents)
-// ==========================================
-async function loadAdminDocuments() {
-    // 📌 ดักจับ ID ตารางเอกสารทุกชื่อที่เป็นไปได้
-    const docTableBody = document.getElementById('adminDocTableBody') || 
-                         document.getElementById('docTableBody') || 
-                         document.getElementById('documentTableBody');
-    if (!docTableBody) return;
-
-    try {
-        const response = await fetch('/api/documents');
-        const result = await response.json();
-        const docs = Array.isArray(result) ? result : (result.data || []);
-
-        docTableBody.innerHTML = '';
-
-        if (!docs || docs.length === 0) {
-            docTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px;">ยังไม่มีเอกสารในระบบ</td></tr>`;
-            return;
-        }
-
-        docs.forEach(doc => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid #e2e8f0';
-            tr.innerHTML = `
-                <td style="padding: 10px;">${doc.title}</td>
-                <td style="padding: 10px;">${doc.category || '-'}</td>
-                <td style="padding: 10px;">${doc.fiscal_year || '-'}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <button onclick="deleteDocument(${doc.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                        🗑️ ลบ
-                    </button>
-                </td>
-            `;
-            docTableBody.appendChild(tr);
-        });
-
-    } catch (err) {
-        console.error('Error loading documents:', err);
-    }
-}
-
 async function deleteLesson(id) {
     if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบทเรียนนี้?')) return;
-
     try {
         const response = await fetch(`/api/lessons/${id}`, { method: 'DELETE' });
         if (response.ok) {
@@ -373,7 +298,7 @@ async function deleteLesson(id) {
 }
 
 // ==========================================
-// 5. ฟังก์ชัน Modal แก้ไขบทเรียน
+// ✏️ Modal แก้ไข
 // ==========================================
 async function openEditModal(id) {
     try {
@@ -381,11 +306,11 @@ async function openEditModal(id) {
         const lesson = await response.json();
 
         if (response.ok) {
-            document.getElementById('editLessonId').value = lesson.id;
-            document.getElementById('editLessonTitle').value = lesson.title || '';
-            document.getElementById('editLessonCategory').value = lesson.category || '';
-            document.getElementById('editLessonSummary').value = lesson.summary || '';
-            document.getElementById('editLessonContent').value = lesson.content || '';
+            if(document.getElementById('editLessonId')) document.getElementById('editLessonId').value = lesson.id;
+            if(document.getElementById('editLessonTitle')) document.getElementById('editLessonTitle').value = lesson.title || '';
+            if(document.getElementById('editLessonCategory')) document.getElementById('editLessonCategory').value = lesson.category || '';
+            if(document.getElementById('editLessonSummary')) document.getElementById('editLessonSummary').value = lesson.summary || '';
+            if(document.getElementById('editLessonContent')) document.getElementById('editLessonContent').value = lesson.content || '';
 
             const videoEl = document.getElementById('editLessonVideo');
             if (videoEl) videoEl.value = lesson.video_url || '';
@@ -393,7 +318,8 @@ async function openEditModal(id) {
             const imageEl = document.getElementById('editLessonImage');
             if (imageEl) imageEl.value = '';
 
-            document.getElementById('editLessonModal').style.display = 'flex';
+            const modal = document.getElementById('editLessonModal');
+            if (modal) modal.style.display = 'flex';
         } else {
             alert('ไม่สามารถดึงข้อมูลบทเรียนได้');
         }
@@ -403,5 +329,6 @@ async function openEditModal(id) {
 }
 
 function closeEditModal() {
-    document.getElementById('editLessonModal').style.display = 'none';
+    const modal = document.getElementById('editLessonModal');
+    if (modal) modal.style.display = 'none';
 }
