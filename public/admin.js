@@ -1,29 +1,34 @@
 // ==========================================
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
-// 🟢 ประกาศไว้บรรทัดบนสุดของ admin.js
-const quill = new Quill('#editor', {
-    theme: 'snow',
-    modules: {
-        toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }],
-            ['image', 'link'], // 🖼️ ปุ่มสำหรับแทรกรูปภาพ
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            ['clean']
-        ]
-    },
-    placeholder: 'พิมพ์เนื้อหาบทเรียน... สามารถก๊อปปี้รูปภาพมาวาง หรือกดปุ่มรูปภาพเพื่อแทรกได้หลายๆ รูปเลยครับ'
-});
+let quill; // ประกาศตัวแปรไว้รอ
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 🟢 1. เปิดใช้งาน Quill Editor เมื่อ DOM โหลดเสร็จเรียบร้อยแล้ว
+    const editorContainer = document.getElementById('editor');
+    if (editorContainer && typeof Quill !== 'undefined') {
+        quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['image', 'link'], // 🖼️ ปุ่มสำหรับแทรกรูปภาพ
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['clean']
+                ]
+            },
+            placeholder: 'พิมพ์เนื้อหาบทเรียน... สามารถก๊อปปี้รูปภาพมาวาง หรือกดปุ่มรูปภาพเพื่อแทรกได้หลายๆ รูปเลยครับ'
+        });
+    }
+
     // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้าเว็บ
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
-    // 1. ฟอร์มเพิ่มผู้ใช้งาน
+    // 2. ฟอร์มเพิ่มผู้ใช้งาน
     const addUserForm = document.getElementById('addUserForm');
     if (addUserForm) {
         addUserForm.addEventListener('submit', async (e) => {
@@ -58,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 2. ฟอร์มอัปโหลดเอกสาร
+    // 3. ฟอร์มอัปโหลดเอกสาร
     const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
     if (docForm) {
         docForm.addEventListener('submit', async (e) => {
@@ -83,18 +88,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. ปุ่มบันทึกบทเรียน
+    // 4. ปุ่มบันทึกบทเรียน
     const btnSaveLesson = document.getElementById('btnSaveLesson');
     if (btnSaveLesson) {
         btnSaveLesson.addEventListener('click', async () => {
             const title = document.getElementById('lessonTitle')?.value.trim();
             const category = document.getElementById('lessonCategory')?.value.trim();
             const summary = document.getElementById('lessonSummary')?.value.trim();
-            const content = document.getElementById('lessonContent')?.value.trim();
             const video_url = document.getElementById('lessonVideo')?.value.trim();
-           // 🟢 เปลี่ยนเป็นแบบนี้แทน (ดึงเนื้อหาพร้อมรูปภาพทั้งหมดจาก Quill)
-const content = typeof quill !== 'undefined' ? quill.root.innerHTML : (document.getElementById('lessonContent')?.value || '');
+            
+            // 🟢 ประกาศตัวแปรรูปภาพประกอบหน้าการ์ด
+            const imageInput = document.getElementById('lessonImage');
+            const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
 
+            // 🟢 ดึงเนื้อหาจาก Quill Editor (ถ้ามี) หรือจาก textarea
+            let content = '';
+            if (quill) {
+                content = quill.root.innerHTML;
+            } else {
+                content = document.getElementById('lessonContent')?.value.trim() || '';
+            }
 
             if (!title) {
                 alert('กรุณากรอกหัวข้อบทเรียน');
@@ -124,12 +137,13 @@ const content = typeof quill !== 'undefined' ? quill.root.innerHTML : (document.
                     if (document.getElementById('lessonTitle')) document.getElementById('lessonTitle').value = '';
                     if (document.getElementById('lessonCategory')) document.getElementById('lessonCategory').value = '';
                     if (document.getElementById('lessonSummary')) document.getElementById('lessonSummary').value = '';
-                   // 🟢 เปลี่ยนเป็นแบบนี้แทน (ล้างกล่องข้อความ Quill)
-if (typeof quill !== 'undefined') {
-    quill.setText('');
-} else if (document.getElementById('lessonContent')) {
-    document.getElementById('lessonContent').value = '';
-}
+                    
+                    // 🟢 ล้างกล่องพิมพ์ Quill
+                    if (quill) {
+                        quill.setText('');
+                    } else if (document.getElementById('lessonContent')) {
+                        document.getElementById('lessonContent').value = '';
+                    }
 
                     if (document.getElementById('lessonVideo')) document.getElementById('lessonVideo').value = '';
                     if (document.getElementById('lessonImage')) document.getElementById('lessonImage').value = '';
@@ -258,6 +272,7 @@ async function deleteDocument(id) {
         console.error('Error deleting document:', err);
     }
 }
+
 // ==========================================
 // 📚 โหลดบทเรียน (Lessons)
 // ==========================================
@@ -284,7 +299,6 @@ async function loadAdminLessons() {
             const hasVideo = lesson.video_url ? '🎬' : '';
             const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '-';
 
-            // 📌 ใส่ทั้งปุ่ม "แก้ไข" และปุ่ม "ลบ" กลับเข้ามาตรงนี้ครับ
             tr.innerHTML = `
                 <td style="padding: 12px 10px;">${lesson.id}</td>
                 <td style="padding: 12px 10px;"><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
