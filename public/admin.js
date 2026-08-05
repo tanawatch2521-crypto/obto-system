@@ -266,9 +266,6 @@ async function loadAdminLessons() {
                 <td><span class="badge bg-secondary">${lesson.category || '-'}</span></td>
                 <td class="text-center" style="font-size: 1.1rem;">${mediaBadge}</td>
                 <td class="text-center">
-                    <button onclick="openEditModal(${lesson.id})" style="background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
-                        ✏️ แก้ไข
-                    </button>
                     <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
                         🗑️ ลบ
                     </button>
