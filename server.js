@@ -62,6 +62,15 @@ db.serialize(() => {
         views INTEGER DEFAULT 0,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+        // 📌 บังคับเพิ่มคอลัมน์ image_url ในตาราง lessons (ถ้ายังไม่มี)
+        db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
+            if (err) {
+                // ถ้าคอลัมน์มีอยู่แล้ว SQLite จะแจ้ง error ซึ่งข้ามได้เลยครับ
+                console.log("Column image_url is ready.");
+            } else {
+                console.log("Added image_url column successfully!");
+            }
+        });
 
     // ตาราง Documents
     db.run(`CREATE TABLE IF NOT EXISTS documents (
