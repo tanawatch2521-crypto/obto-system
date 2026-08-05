@@ -235,38 +235,44 @@ async function deleteDocument(id) {
         console.error('Error deleting document:', err);
     }
 }
-
 // ==========================================
 // 📚 โหลดบทเรียน (Lessons)
 // ==========================================
 async function loadAdminLessons() {
-    const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
-    if (!tableBody) return;
+    // ดึง tbody จาก ID
+    const tableBody = document.getElementById('adminLessonsTable');
+    if (!tableBody) {
+        console.error('ไม่พบแท็ก <tbody id="adminLessonsTable"> ใน HTML');
+        return;
+    }
 
     try {
         const response = await fetch('/api/lessons');
         const result = await response.json();
         const lessons = Array.isArray(result) ? result : (result.data || []);
 
-        tableBody.innerHTML = '';
+        tableBody.innerHTML = ''; // ล้างคำว่า "กำลังโหลดข้อมูล..."
+        
         if (!lessons || lessons.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:15px;">ยังไม่มีบทเรียนในระบบ</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">ยังไม่มีบทเรียนในระบบ</td></tr>';
             return;
         }
 
         lessons.forEach(lesson => {
             const tr = document.createElement('tr');
-            const hasImage = lesson.image_url ? '<i class="fas fa-image text-primary me-1" title="มีรูปภาพ"></i>' : '';
-            const hasVideo = lesson.video_url ? '<i class="fab fa-youtube text-danger me-1" title="มีวิดีโอ"></i>' : '';
-            const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '<span class="text-muted">-</span>';
+            tr.style.borderBottom = '1px solid #e2e8f0';
+
+            const hasImage = lesson.image_url ? '🖼️' : '';
+            const hasVideo = lesson.video_url ? '🎬' : '';
+            const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '-';
 
             tr.innerHTML = `
-                <td>${lesson.id}</td>
-                <td><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
-                <td><span class="badge bg-secondary">${lesson.category || '-'}</span></td>
-                <td class="text-center" style="font-size: 1.1rem;">${mediaBadge}</td>
-                <td class="text-center">
-                    <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                <td style="padding: 12px 10px;">${lesson.id}</td>
+                <td style="padding: 12px 10px;"><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
+                <td style="padding: 12px 10px;"><span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 13px;">${lesson.category || '-'}</span></td>
+                <td style="padding: 12px 10px; text-align: center;">${mediaBadge}</td>
+                <td style="padding: 12px 10px; text-align: center;">
+                    <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
                         🗑️ ลบ
                     </button>
                 </td>
@@ -275,6 +281,7 @@ async function loadAdminLessons() {
         });
     } catch (err) {
         console.error('Error loading admin lessons:', err);
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red; padding: 20px;">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
     }
 }
 
