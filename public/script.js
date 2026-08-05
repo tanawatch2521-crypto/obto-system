@@ -106,6 +106,37 @@ function searchLessons() {
     }
   });
 }
+// 📌 ตัวอย่างโค้ดสร้างการ์ดบทเรียน
+function renderLessonCard(lesson) {
+    // เช็คว่าบทเรียนนี้มี image_url หรือไม่
+    const imageHTML = lesson.image_url 
+        ? `<img src="${lesson.image_url}" alt="${lesson.title}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">` 
+        : '';
+
+    // เช็คว่ามีวิดีโอหรือไม่
+    const videoHTML = lesson.video_url 
+        ? `<div style="margin-top: 10px;"><iframe width="100%" height="250" src="${lesson.video_url}" frameborder="0" allowfullscreen style="border-radius: 8px;"></iframe></div>` 
+        : '';
+
+    return `
+        <div class="lesson-card" style="border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <span class="badge" style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${lesson.category || 'ทั่วไป'}</span>
+            <h3 style="margin: 8px 0;">${lesson.title}</h3>
+            <p style="color: #64748b;">${lesson.summary || ''}</p>
+            
+            <!-- 🖼️ ใส่ HTML รูปภาพตรงนี้ -->
+            ${imageHTML}
+
+            <div class="lesson-content">
+                <strong>รายละเอียดเนื้อหา:</strong>
+                <p>${lesson.content}</p>
+            </div>
+
+            <!-- 🎬 ใส่ HTML วิดีโอตรงนี้ -->
+            ${videoHTML}
+        </div>
+    `;
+}
 
 
 // ==========================================
