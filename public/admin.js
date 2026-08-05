@@ -265,21 +265,24 @@ async function deleteDocument(id) {
 }
 
 // ==========================================
-// 4. ฟังก์ชันจัดการบทเรียน (Lessons)
+// 📚 โหลดรายการบทเรียน (Lessons)
 // ==========================================
 async function loadAdminLessons() {
+    // 📌 ดักจับ ID ตารางบทเรียนทุกชื่อที่เป็นไปได้
+    const tableBody = document.getElementById('adminLessonsTable') || 
+                      document.getElementById('adminLessonTableBody') || 
+                      document.getElementById('lessonTableBody');
+    if (!tableBody) return;
+
     try {
         const response = await fetch('/api/lessons');
         const result = await response.json();
-        const lessons = result.data || result;
-
-        const tableBody = document.getElementById('adminLessonsTable');
-        if (!tableBody) return;
+        const lessons = Array.isArray(result) ? result : (result.data || []);
 
         tableBody.innerHTML = '';
 
-        if (!Array.isArray(lessons) || lessons.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ยังไม่มีบทเรียนในระบบ</td></tr>';
+        if (!lessons || lessons.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:15px;">ยังไม่มีบทเรียนในระบบ</td></tr>';
             return;
         }
 
@@ -307,6 +310,49 @@ async function loadAdminLessons() {
         });
     } catch (err) {
         console.error('Error loading admin lessons:', err);
+    }
+}
+
+// ==========================================
+// 📄 โหลดรายการเอกสาร (Documents)
+// ==========================================
+async function loadAdminDocuments() {
+    // 📌 ดักจับ ID ตารางเอกสารทุกชื่อที่เป็นไปได้
+    const docTableBody = document.getElementById('adminDocTableBody') || 
+                         document.getElementById('docTableBody') || 
+                         document.getElementById('documentTableBody');
+    if (!docTableBody) return;
+
+    try {
+        const response = await fetch('/api/documents');
+        const result = await response.json();
+        const docs = Array.isArray(result) ? result : (result.data || []);
+
+        docTableBody.innerHTML = '';
+
+        if (!docs || docs.length === 0) {
+            docTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px;">ยังไม่มีเอกสารในระบบ</td></tr>`;
+            return;
+        }
+
+        docs.forEach(doc => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #e2e8f0';
+            tr.innerHTML = `
+                <td style="padding: 10px;">${doc.title}</td>
+                <td style="padding: 10px;">${doc.category || '-'}</td>
+                <td style="padding: 10px;">${doc.fiscal_year || '-'}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <button onclick="deleteDocument(${doc.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                        🗑️ ลบ
+                    </button>
+                </td>
+            `;
+            docTableBody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error('Error loading documents:', err);
     }
 }
 
