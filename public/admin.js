@@ -2,46 +2,59 @@
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
 
+// --------------------------------------
+// บันทึกบทเรียน (ผูกตรงกับปุ่ม type="button")
+// --------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้าเว็บ
+    // โหลดตารางเมื่อเปิดหน้าเว็บ
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
-    // 1. ฟอร์มเพิ่มผู้ใช้งาน
-    const addUserForm = document.getElementById('addUserForm');
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username')?.value.trim();
-            const password = document.getElementById('password')?.value.trim();
-            const fullname = document.getElementById('fullname')?.value.trim();
+    const btnSaveLesson = document.getElementById('btnSaveLesson');
+    const addLessonForm = document.getElementById('addLessonForm');
 
-            if (!username || !password) {
-                alert('กรุณากรอก Username และ Password ให้ครบถ้วน');
+    if (btnSaveLesson && addLessonForm) {
+        btnSaveLesson.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            // ดึงค่ามาเช็คว่ากรอกหัวข้อหรือยัง
+            const titleInput = document.getElementById('lessonTitle');
+            if (titleInput && !titleInput.value.trim()) {
+                alert('กรุณากรอกหัวข้อบทเรียน');
                 return;
             }
 
+            const formData = new FormData(addLessonForm);
+
             try {
-                const response = await fetch('/api/users', {
+                const response = await fetch('/api/lessons', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, fullname })
+                    body: formData
                 });
+
                 const result = await response.json();
+
                 if (response.ok) {
-                    alert('เพิ่มผู้ใช้งานสำเร็จ!');
-                    addUserForm.reset();
-                    loadUsers();
+                    alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
+                    addLessonForm.reset();
+                    
+                    // ล้าง Query String บน URL ออกให้สะอาด
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // โหลดรายการตารางใหม่ทันที
+                    loadAdminLessons();
                 } else {
-                    alert(result.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน');
+                    alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถบันทึกได้'));
                 }
             } catch (err) {
-                console.error('Error adding user:', err);
-                alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+                console.error('Error adding lesson:', err);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
             }
         });
     }
+});
+
 
     // 2. ฟอร์มอัปโหลดเอกสาร
     const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
