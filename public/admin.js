@@ -207,7 +207,7 @@ async function loadAdminLessons() {
 
         tableBody.innerHTML = '';
 
-        if (!Array.isArray(lessons) || lessons.length === === 0) {
+        if (!Array.isArray(lessons) || lessons.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ยังไม่มีบทเรียนในระบบ</td></tr>'; // 👈 colspan เปลี่ยนเป็น 5
             return;
         }
