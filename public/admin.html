@@ -40,7 +40,7 @@
     <!-- 📚 เพิ่มบทเรียน -->
     <div class="card">
         <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-plus-circle"></i> เพิ่มบทเรียนองค์ความรู้ใหม่</h3>
-             <form id="addLessonForm" enctype="multipart/form-data">
+<form id="addLessonForm" action="/api/lessons" method="POST" enctype="multipart/form-data">
         <div class="form-group">
           <label>หัวข้อบทเรียน:</label>
           <input type="text" id="lessonTitle" name="title" class="form-control" required placeholder="เช่น ขั้นตอนการเบิกจ่ายงบประมาณ...">
