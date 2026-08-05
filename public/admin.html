@@ -35,47 +35,49 @@
         </div>
     </div>
 
-
-
-    <!-- 📚 เพิ่มบทเรียน -->
-    <div class="card">
-        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-plus-circle"></i> เพิ่มบทเรียนองค์ความรู้ใหม่</h3>
-<form id="addLessonForm" action="/api/lessons" method="POST" enctype="multipart/form-data" onsubmit="return false;">
+<!-- 📚 เพิ่มบทเรียน (ใช้ div แทน form ตัดปัญหา Query String บน URL) -->
+<div class="card">
+    <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-plus-circle"></i> เพิ่มบทเรียนองค์ความรู้ใหม่</h3>
+    
+    <div id="addLessonSection">
         <div class="form-group">
-          <label>หัวข้อบทเรียน:</label>
-          <input type="text" id="lessonTitle" name="title" class="form-control" required placeholder="เช่น ขั้นตอนการเบิกจ่ายงบประมาณ...">
+            <label>หัวข้อบทเรียน:</label>
+            <input type="text" id="lessonTitle" class="form-control" placeholder="เช่น ขั้นตอนการเบิกจ่ายงบประมาณ...">
         </div>
+
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <div class="form-group" style="flex: 1; min-width: 200px;">
-            <label>หมวดหมู่:</label>
-            <input type="text" id="lessonCategory" name="category" class="form-control" placeholder="เช่น การเงินและพัสดุ, กฎหมาย">
-          </div>
-          <div class="form-group" style="flex: 2; min-width: 300px;">
-            <label>สรุปย่อ (Short Summary):</label>
-            <input type="text" id="lessonSummary" name="summary" class="form-control" placeholder="สรุปสั้นๆ สำหรับแสดงหน้าแรก">
-          </div>
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label>หมวดหมู่:</label>
+                <input type="text" id="lessonCategory" class="form-control" placeholder="เช่น การเงินและพัสดุ, กฎหมาย">
+            </div>
+            <div class="form-group" style="flex: 2; min-width: 300px;">
+                <label>สรุปย่อ (Short Summary):</label>
+                <input type="text" id="lessonSummary" class="form-control" placeholder="สรุปสั้นๆ สำหรับแสดงหน้าแรก">
+            </div>
         </div>
+
         <div class="form-group">
-          <label>เนื้อหาบทเรียนฉบับเต็ม:</label>
-          <textarea id="lessonContent" name="content" class="form-control" rows="5" placeholder="กรอกเนื้อหา รายละเอียด หรือขั้นตอนปฏิบัติ..."></textarea>
+            <label>เนื้อหาบทเรียนฉบับเต็ม:</label>
+            <textarea id="lessonContent" class="form-control" rows="5" placeholder="กรอกเนื้อหา รายละเอียด หรือขั้นตอนปฏิบัติ..."></textarea>
         </div>
 
-        <!-- 📸 เพิ่มช่องแนบรูปภาพ -->
         <div class="form-group">
-          <label>แนบรูปภาพประกอบบทเรียน:</label>
-          <input type="file" id="lessonImage" name="image" class="form-control" accept="image/*">
+            <label>แนบรูปภาพประกอบบทเรียน:</label>
+            <input type="file" id="lessonImage" class="form-control" accept="image/*">
         </div>
 
-        <!-- 🎥 เพิ่มช่องใส่วิดีโอ YouTube -->
         <div class="form-group">
-          <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
-          <input type="url" id="lessonVideo" name="video_url" class="form-control" placeholder="เช่น https://www.youtube.com/embed/dQw4w9WgXcQ">
+            <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
+            <input type="url" id="lessonVideo" class="form-control" placeholder="เช่น https://www.youtube.com/embed/dQw4w9WgXcQ">
         </div>
 
-       <button type="button" id="btnSaveLesson" class="btn btn-blue"><i class="fas fa-save"></i> บันทึกบทเรียน</button>
-      </form>
-
+        <!-- 📌 ปุ่มกดชนิด type="button" ผูก ID ชัดเจน -->
+        <button type="button" id="btnSaveLesson" class="btn btn-blue">
+            <i class="fas fa-save"></i> บันทึกบทเรียน
+        </button>
     </div>
+</div>
+
 <!-- ตารางแสดงรายการบทเรียนที่มีอยู่ในระบบ -->
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
