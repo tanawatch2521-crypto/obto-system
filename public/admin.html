@@ -77,28 +77,36 @@
         </button>
     </div>
 </div>
-
-<!-- ตารางแสดงรายการบทเรียนที่มีอยู่ในระบบ -->
+<!-- 📌 ตารางแสดงรายการบทเรียน -->
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
         <h5 class="fw-bold mb-3">📚 รายการบทเรียนทั้งหมด (จัดการ/ลบ)</h5>
         <div class="table-responsive">
-                     <thead class="table-light">
-            <tr>
-              <th style="width: 60px;">ID</th>
-              <th>หัวข้อบทเรียน</th>
-              <th>หมวดหมู่</th>
-              <th style="width: 120px;" class="text-center">สื่อประกอบ</th> <!-- 👈 เพิ่มคอลัมน์นี้ -->
-              <th style="width: 150px;" class="text-center">จัดการ</th>
-            </tr>
-          </thead>
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>หัวข้อบทเรียน</th>
+                        <th>หมวดหมู่</th>
+                        <th class="text-center">สื่อประกอบ</th>
+                        <th class="text-center" style="width: 150px;">จัดการ</th>
+                    </tr>
+                </thead>
+                
+                <!-- 📌 ใส่ ID นี้ตรง <tbody> ให้ตรงกับ admin.js ครับ -->
                 <tbody id="adminLessonsTable">
-                    <!-- รายการบทเรียนพร้อมปุ่มลบจะเด้งมาตรงนี้ -->
+                    <tr>
+                        <td colspan="5" class="text-center text-muted" style="padding: 15px;">
+                            กำลังโหลดข้อมูลบทเรียน...
+                        </td>
+                    </tr>
                 </tbody>
+
             </table>
         </div>
     </div>
 </div>
+
 
     <!-- 📁 อัปโหลดเอกสาร -->
     <div class="card">
