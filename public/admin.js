@@ -1,6 +1,21 @@
 // ==========================================
 // 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
 // ==========================================
+// 🟢 ประกาศไว้บรรทัดบนสุดของ admin.js
+const quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            ['image', 'link'], // 🖼️ ปุ่มสำหรับแทรกรูปภาพ
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            ['clean']
+        ]
+    },
+    placeholder: 'พิมพ์เนื้อหาบทเรียน... สามารถก๊อปปี้รูปภาพมาวาง หรือกดปุ่มรูปภาพเพื่อแทรกได้หลายๆ รูปเลยครับ'
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้าเว็บ
@@ -77,7 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const summary = document.getElementById('lessonSummary')?.value.trim();
             const content = document.getElementById('lessonContent')?.value.trim();
             const video_url = document.getElementById('lessonVideo')?.value.trim();
-            const imageFile = document.getElementById('lessonImage')?.files[0];
+           // 🟢 เปลี่ยนเป็นแบบนี้แทน (ดึงเนื้อหาพร้อมรูปภาพทั้งหมดจาก Quill)
+const content = typeof quill !== 'undefined' ? quill.root.innerHTML : (document.getElementById('lessonContent')?.value || '');
+
 
             if (!title) {
                 alert('กรุณากรอกหัวข้อบทเรียน');
@@ -107,7 +124,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (document.getElementById('lessonTitle')) document.getElementById('lessonTitle').value = '';
                     if (document.getElementById('lessonCategory')) document.getElementById('lessonCategory').value = '';
                     if (document.getElementById('lessonSummary')) document.getElementById('lessonSummary').value = '';
-                    if (document.getElementById('lessonContent')) document.getElementById('lessonContent').value = '';
+                   // 🟢 เปลี่ยนเป็นแบบนี้แทน (ล้างกล่องข้อความ Quill)
+if (typeof quill !== 'undefined') {
+    quill.setText('');
+} else if (document.getElementById('lessonContent')) {
+    document.getElementById('lessonContent').value = '';
+}
+
                     if (document.getElementById('lessonVideo')) document.getElementById('lessonVideo').value = '';
                     if (document.getElementById('lessonImage')) document.getElementById('lessonImage').value = '';
 
