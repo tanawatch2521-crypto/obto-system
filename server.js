@@ -210,6 +210,31 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+// API สำหรับบันทึกการแก้ไขบทเรียน (รองรับเปลี่ยนรูปและวิดีโอ)
+app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
+    const { id } = req.params;
+    const { title, category, summary, content, video_url } = req.body;
+
+    // เช็กว่ามีรูปภาพใหม่ถูกอัปโหลดมาไหม
+    if (req.file) {
+        const image_url = `/uploads/${req.file.filename}`;
+        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        
+        db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+        });
+    } else {
+        // กรณีไม่ได้เปลี่ยนรูปใหม่ ให้แก้เฉพาะข้อมูลส่วนอื่น และ video_url
+        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        
+        db.run(sql, [title, category, summary, content, video_url, id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+        });
+    }
+});
+
 
 
 // 2. API สำหรับอัปโหลดเอกสารใหม่
