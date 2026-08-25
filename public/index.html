@@ -50,6 +50,10 @@
         .nav-links a:hover {
             background-color: #eff6ff;
         }
+        .nav-links a.active {
+            background-color: #2563eb;
+            color: white;
+        }
         .section-title {
             color: #1e293b;
             border-left: 5px solid #2563eb;
@@ -83,76 +87,28 @@
     <div class="container">
         <!-- 🧭 แถบเมนูนำทาง -->
         <div class="nav-bar">
-            <span style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">📌 คลังความรู้ & เอกสารราชการ</span>
+            <span style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">📌 คลังความรู้การเงินและการคลัง</span>
             <div class="nav-links">
-                <a href="#lessons-section"><i class="fas fa-book"></i> บทเรียนองค์ความรู้</a>
-                <a href="#documents-section"><i class="fas fa-file-pdf"></i> คลังเอกสาร</a>
-                <a href="/login.html" style="background-color: #2563eb; color: white;"><i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่</a>
+                <a href="index.html" class="active"><i class="fas fa-book"></i> บทเรียนองค์ความรู้</a>
+                <a href="documents.html"><i class="fas fa-file-pdf"></i> คลังเอกสารดาวน์โหลด</a>
+                <a href="login.html" style="background-color: #0f172a; color: white; margin-left: 10px;"><i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่</a>
             </div>
         </div>
 
-        <!-- 📖 1. ส่วนแสดงบทเรียนองค์ความรู้ (ดึงผ่าน API /api/lessons) -->
-        <section id="lessons-section">
-            <h2 class="section-title">📚 บทเรียนองค์ความรู้ล่าสุด</h2>
-    <!-- 🔍 แทรกช่องค้นหาไว้ตรงนี้ครับ -->
-    <div class="search-box" style="margin: 15px 0;">
-        <input type="text" id="lessonSearchInput" placeholder="🔍 ค้นหาบทเรียน..." onkeyup="searchLessons()" style="width: 100%; max-width: 400px; padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 15px;">
-    </div>
+        <!-- 📖 ส่วนแสดงบทเรียนองค์ความรู้ -->
+        <section id="lessons-section" style="padding: 25px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <h2 class="section-title" style="margin-top: 0;">📚 บทเรียนองค์ความรู้ทั้งหมด</h2>
+            
+            <!-- 🔍 ช่องค้นหาบทเรียน -->
+            <div class="search-box" style="margin: 20px 0;">
+                <input type="text" id="lessonSearchInput" placeholder="🔍 ค้นหาชื่อบทเรียน หรือหมวดหมู่..." onkeyup="searchLessons()" style="width: 100%; max-width: 450px; padding: 12px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 15px; font-family: 'Sarabun';">
+            </div>
 
-    <div id="lessons-container" class="card-grid">
-        <p style="color: #64748b; text-align: center; grid-column: 1/-1;">
-            <i class="fas fa-spinner fa-spin"></i> กำลังโหลดบทเรียน...
-        </p>
-    </div>
-</section>
-
+            <!-- การ์ดแสดงผลบทเรียน -->
             <div id="lessons-container" class="card-grid">
                 <p style="color: #64748b; text-align: center; grid-column: 1/-1; padding: 30px;">
                     <i class="fas fa-spinner fa-spin"></i> กำลังโหลดบทเรียนจากระบบ...
                 </p>
-            </div>
-        </section>
-
-        <hr style="border: 0; height: 1px; background: #e2e8f0; margin: 40px 0;">
-
-        <!-- 📁 2. ส่วนคลังแบบฟอร์มเอกสาร & ระบบค้นหา/ตัวกรอง -->
-        <section id="documents-section" style="padding: 25px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <h2 class="section-title" style="margin-top: 0;">📥 คลังแบบฟอร์มเอกสารและระเบียบดาวน์โหลด</h2>
-
-            <!-- 🔍 ช่องค้นหา & ตัวกรองปีงบประมาณ -->
-            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px;">
-                <div style="flex: 2; min-width: 250px;">
-                    <label for="docSearchInput" style="font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">🔍 ค้นหาชื่อเอกสาร / หมวดหมู่:</label>
-                    <input type="text" id="docSearchInput" placeholder="พิมพ์ชื่อเอกสาร เช่น ใบเสนอราคา, ระเบียบการเงิน..." 
-                           style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun';">
-                </div>
-                <div style="flex: 1; min-width: 180px;">
-                    <label for="docYearFilter" style="font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">📅 กรองตามปีงบประมาณ:</label>
-                    <select id="docYearFilter" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; cursor: pointer;">
-                        <option value="all">-- ทุกปีงบประมาณ --</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 📄 ตารางแสดงผลเอกสาร -->
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                    <thead>
-                        <tr style="background: #f1f5f9; text-align: left; color: #334155; border-bottom: 2px solid #cbd5e1;">
-                            <th style="padding: 12px;">ชื่อเอกสาร / แบบฟอร์ม</th>
-                            <th style="padding: 12px;">หมวดหมู่</th>
-                            <th style="padding: 12px;">ปีงบประมาณ</th>
-                            <th style="padding: 12px; text-align: center;">ดาวน์โหลด</th>
-                        </tr>
-                    </thead>
-                    <tbody id="documentTableBody">
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 25px; color: #94a3b8;">
-                                <i class="fas fa-spinner fa-spin"></i> กำลังโหลดคลังเอกสาร...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </section>
     </div>
@@ -162,7 +118,7 @@
         <p>© 2026 องค์การบริหารส่วนตำบลตาขีด - ระบบจัดการความรู้เพื่อการพัฒนาองค์กรอย่างยั่งยืน</p>
     </footer>
 
-    <!-- เชื่อมต่อ script.js สำหรับดึง API และทำงานร่วมกับ UI -->
+    <!-- เชื่อมต่อ script.js -->
     <script src="script.js"></script>
 </body>
 </html>
