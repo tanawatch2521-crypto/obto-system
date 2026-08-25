@@ -3,258 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ผู้ดูแลระบบ (Admin Dashboard) - อบต.ตาขีด</title>
+    <title>ระบบหลังบ้าน (Admin) - อบต.ตาขีด</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <!-- CDN สำหรับ Quill Editor (วางต่อจากบรรทัดที่ 10) -->
+    
+    <!-- CDN สำหรับ Quill Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
-        .btn { padding: 9px 18px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; font-family: 'Sarabun'; }
-        .btn-green { background: #16a34a; color: white; }
+        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar แถบเมนูด้านข้าง */
+        .sidebar { width: 260px; background: #1e293b; color: white; display: flex; flex-direction: column; padding: 20px 0; }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid #334155; }
+        .sidebar-menu { list-style: none; padding: 0; margin: 20px 0; }
+        .sidebar-menu li a { display: block; padding: 12px 25px; color: #cbd5e1; text-decoration: none; font-size: 16px; border-left: 4px solid transparent; }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #334155; color: white; border-left-color: #2563eb; }
+        
+        /* Main Content ส่วนแสดงเนื้อหา */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        
+        .card { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; }
         .btn-blue { background: #2563eb; color: white; }
         .btn-red { background: #dc2626; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .btn-green { background: #16a34a; color: white; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; color: #475569; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h2 style="margin: 0; color: #0f172a;"><i class="fas fa-user-shield"></i> ระบบจัดการหลังบ้าน (Admin Dashboard)</h2>
-        <div>
-            <a href="index.html" class="btn btn-blue"><i class="fas fa-globe"></i> ไปหน้าผู้ใช้ทั่วไป</a>
+    <!-- 🧭 แถบเมนูด้านข้าง (Sidebar) -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3 style="margin: 0; color: #60a5fa;">🏛️ ระบบหลังบ้าน</h3>
+            <p style="margin: 5px 0 0; font-size: 13px; color: #94a3b8;">อบต.ตาขีด</p>
         </div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="active" onclick="switchTab(event, 'tab-lessons')"><i class="fas fa-book"></i> จัดการบทเรียน</a></li>
+            <li><a href="#" onclick="switchTab(event, 'tab-documents')"><i class="fas fa-file-pdf"></i> จัดการเอกสาร</a></li>
+            <li><a href="#" onclick="switchTab(event, 'tab-users')"><i class="fas fa-users"></i> จัดการผู้ใช้งาน</a></li>
+            <li style="margin-top: 30px;"><a href="index.html" style="color: #f87171;"><i class="fas fa-sign-out-alt"></i> กลับหน้าหลัก</a></li>
+        </ul>
     </div>
 
-<!-- 📚 เพิ่มบทเรียน (ใช้ div แทน form ตัดปัญหา Query String บน URL) -->
-<div class="card">
-    <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-plus-circle"></i> เพิ่มบทเรียนองค์ความรู้ใหม่</h3>
-    
-    <div id="addLessonSection">
-        <div class="form-group">
-            <label>หัวข้อบทเรียน:</label>
-            <input type="text" id="lessonTitle" class="form-control" placeholder="เช่น ขั้นตอนการเบิกจ่ายงบประมาณ...">
-        </div>
+    <!-- 📄 ส่วนแสดงเนื้อหา (Main Content) -->
+    <div class="main-content">
 
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div class="form-group" style="flex: 1; min-width: 200px;">
-                <label>หมวดหมู่:</label>
-                <input type="text" id="lessonCategory" class="form-control" placeholder="เช่น การเงินและพัสดุ, กฎหมาย">
-            </div>
-            <div class="form-group" style="flex: 2; min-width: 300px;">
-                <label>สรุปย่อ (Short Summary):</label>
-                <input type="text" id="lessonSummary" class="form-control" placeholder="สรุปสั้นๆ สำหรับแสดงหน้าแรก">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>เนื้อหาบทเรียนฉบับเต็ม:</label>
-            <div id="editor" style="height: 250px; background: white; border-radius: 6px;"></div>
-<input type="hidden" id="lessonContent">
-
-        </div>
-
-        <div class="form-group">
-            <label>แนบรูปภาพประกอบบทเรียน:</label>
-            <input type="file" id="lessonImage" class="form-control" accept="image/*">
-        </div>
-
-        <div class="form-group">
-            <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
-            <input type="url" id="lessonVideo" class="form-control" placeholder="เช่น https://www.youtube.com/embed/dQw4w9WgXcQ">
-        </div>
-
-        <!-- 📌 ปุ่มกดชนิด type="button" ผูก ID ชัดเจน -->
-        <button type="button" id="btnSaveLesson" class="btn btn-blue">
-            <i class="fas fa-save"></i> บันทึกบทเรียน
-        </button>
-    </div>
-</div>
-<!-- 📌 ส่วนแสดงรายการบทเรียนทั้งหมด -->
-<div class="card mb-4 shadow-sm" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-    <h3 style="margin-top: 0; color: #1e293b;">
-        <i class="fas fa-book-open"></i> รายการบทเรียนทั้งหมด (จัดการ/ลบ)
-    </h3>
-    
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
-                    <th style="padding: 12px 10px; width: 60px;">ID</th>
-                    <th style="padding: 12px 10px;">หัวข้อบทเรียน</th>
-                    <th style="padding: 12px 10px; width: 150px;">หมวดหมู่</th>
-                    <th style="padding: 12px 10px; width: 100px; text-align: center;">สื่อประกอบ</th>
-                    <th style="padding: 12px 10px; width: 120px; text-align: center;">จัดการ</th>
-                </tr>
-            </thead>
+        <!-- ================= Tab 1: จัดการบทเรียน ================= -->
+        <div id="tab-lessons" class="tab-panel active">
+            <h2>📚 จัดการบทเรียนองค์ความรู้</h2>
             
-            <!-- 📌 ตัวสำคัญที่สุด: <tbody> ที่มี id="adminLessonsTable" -->
-            <tbody id="adminLessonsTable">
-                <tr>
-                    <td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">
-                        กำลังโหลดข้อมูลบทเรียน...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-    <!-- 📁 อัปโหลดเอกสาร -->
-    <div class="card">
-        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-file-upload"></i> อัปโหลดเอกสารดาวน์โหลดใหม่</h3>
-        <!-- 1. เปลี่ยน id ฟอร์มให้ตรงกับ admin.js -->
-<form id="documentForm" style="display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px;">
-    
-    <div style="flex: 2; min-width: 200px;">
-        <label style="font-weight: bold; font-size: 14px;">ชื่อเอกสาร / แบบฟอร์ม:</label>
-        <!-- 📌 เพิ่ม name="title" -->
-        <input type="text" id="docTitle" name="title" required placeholder="เช่น แบบฟอร์มขอเสนอราคา" class="form-control">
-    </div>
-
-    <div style="flex: 1; min-width: 140px;">
-        <label style="font-weight: bold; font-size: 14px;">หมวดหมู่:</label>
-        <!-- 📌 เพิ่ม name="category" -->
-        <input type="text" id="docCategory" name="category" placeholder="เช่น การเงิน, พัสดุ" class="form-control">
-    </div>
-
-    <div style="flex: 1; min-width: 120px;">
-        <label style="font-weight: bold; font-size: 14px;">ปีงบประมาณ:</label>
-        <!-- 📌 เพิ่ม name="fiscal_year" -->
-        <input type="text" id="docYear" name="fiscal_year" placeholder="2569" class="form-control">
-    </div>
-
-    <div style="flex: 2; min-width: 200px;">
-        <label style="font-weight: bold; font-size: 14px;">เลือกไฟล์ (PDF/Word):</label>
-        <!-- 📌 เพิ่ม name="file" (สำคัญที่สุดสำหรับอัปโหลดไฟล์!) -->
-        <input type="file" id="docFile" name="file" required style="width: 100%; padding: 7px; background: white;" class="form-control">
-    </div>
-
-    <div style="align-self: flex-end;">
-        <button type="submit" class="btn btn-success">📤 อัปโหลดเอกสาร</button>
-    </div>
-
-</form>
-        </div> <!-- บรรทัด 123 (ปิดการ์ดอัปโหลดเอกสาร) -->
-
-        <!-- 📌 วางโค้ดตารางแสดงรายการเอกสารตรงนี้ได้เลยครับ -->
-        <div style="margin-top: 20px;">
-            <table class="table" style="width:100%; border-collapse: collapse; background: white;">
-                <thead>
-                    <tr style="background: #f1f5f9; text-align: left;">
-                        <th style="padding: 10px;">ชื่อเอกสาร / แบบฟอร์ม</th>
-                        <th style="padding: 10px;">หมวดหมู่</th>
-                        <th style="padding: 10px;">ปีงบประมาณ</th>
-                        <th style="padding: 10px; text-align: center;">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="docTableBody">
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 15px;">กำลังโหลดข้อมูล...</td>
-                    </tr>
-                </tbody>
-            </table>
-    </div>
-
-    <!-- 👥 จัดการผู้ใช้งาน -->
-    <div class="card">
-        <h3 style="margin-top: 0; color: #1e293b;"><i class="fas fa-users-cog"></i> จัดการผู้ใช้งานระบบ (เพิ่ม / ลบ บัญชีเจ้าหน้าที่)</h3>
-        <form id="addUserForm" style="display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <div style="flex: 1; min-width: 150px;">
-                <label style="font-weight: bold; font-size: 14px;">Username:</label>
-                <input type="text" id="newUsername" required placeholder="เช่น admin2" class="form-control">
+            <!-- ฟอร์มเพิ่มบทเรียน -->
+            <div class="card">
+                <h3>➕ เพิ่มบทเรียนใหม่</h3>
+                <form id="addLessonForm">
+                    <div class="form-group">
+                        <label>หัวข้อบทเรียน:</label>
+                        <input type="text" id="lessonTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>หมวดหมู่:</label>
+                        <input type="text" id="lessonCategory" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>สรุปย่อ:</label>
+                        <input type="text" id="lessonSummary" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>เนื้อหาบทเรียน:</label>
+                        <div id="editor" style="height: 200px; background: white; border-radius: 6px;"></div>
+                        <input type="hidden" id="lessonContent">
+                    </div>
+                    <div class="form-group">
+                        <label>แนบรูปภาพประกอบ:</label>
+                        <input type="file" id="lessonImage" class="form-control" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
+                        <input type="url" id="lessonVideo" class="form-control" placeholder="https://www.youtube.com/embed/...">
+                    </div>
+                    <button type="button" id="btnSaveLesson" class="btn btn-blue"><i class="fas fa-save"></i> บันทึกบทเรียน</button>
+                </form>
             </div>
-            <div style="flex: 1; min-width: 150px;">
-                <label style="font-weight: bold; font-size: 14px;">Password:</label>
-                <input type="password" id="newPassword" required placeholder="ตั้งรหัสผ่านง่ายๆ" class="form-control">
-            </div>
-            <div style="flex: 1; min-width: 180px;">
-                <label style="font-weight: bold; font-size: 14px;">ชื่อ-นามสกุล / ตำแหน่ง:</label>
-                <input type="text" id="newFullname" placeholder="เช่น นายสมชาย (เจ้าหน้าที่)" class="form-control">
-            </div>
-            <div style="align-self: flex-end;">
-                <button type="submit" class="btn btn-green"><i class="fas fa-user-plus"></i> เพิ่มเจ้าหน้าที่</button>
-            </div>
-        </form>
 
-        <table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>ชื่อ-นามสกุล</th>
-            <th>จัดการ</th>
-        </tr>
-    </thead>
-    <!-- บรรทัดสำคัญ: ต้องมี id="userTableBody" -->
-    <tbody id="userTableBody">
-        <!-- ข้อมูลจะถูกดึงมาใส่ตรงนี้อัตโนมัติ -->
-    </tbody>
-</table>
-    </div>
+            <!-- ตารางแสดงบทเรียน -->
+            <div class="card">
+                <h3>📋 รายการบทเรียนทั้งหมด</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>หัวข้อบทเรียน</th>
+                                <th>หมวดหมู่</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lessonTableBody">
+                            <!-- JS จะใส่ข้อมูลที่นี่ -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-</div>
-<!-- Modal สำหรับแก้ไขบทเรียน -->
-<div id="editLessonModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-<div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-
-        <h3 style="margin-top: 0;">✏️ แก้ไขบทเรียน</h3>
-        <form id="editLessonForm">
-            <input type="hidden" id="editLessonId">
+        <!-- ================= Tab 2: จัดการเอกสารดาวน์โหลด ================= -->
+        <div id="tab-documents" class="tab-panel">
+            <h2>📁 จัดการเอกสารดาวน์โหลด</h2>
             
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>หัวข้อบทเรียน:</label>
-                <input type="text" id="editLessonTitle" class="form-control" required style="width: 100%; padding: 8px; margin-top: 5px;">
+            <!-- ฟอร์มอัปโหลดเอกสาร -->
+            <div class="card">
+                <h3>📤 อัปโหลดเอกสารใหม่</h3>
+                <form id="uploadDocForm">
+                    <div class="form-group">
+                        <label>ชื่อเอกสาร / แบบฟอร์ม:</label>
+                        <input type="text" id="docTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>หมวดหมู่เอกสาร:</label>
+                        <input type="text" id="docCategory" class="form-control" placeholder="เช่น การเงิน, พัสดุ">
+                    </div>
+                    <div class="form-group">
+                        <label>ปีงบประมาณ:</label>
+                        <input type="number" id="docYear" class="form-control" placeholder="เช่น 2567">
+                    </div>
+                    <div class="form-group">
+                        <label>เลือกไฟล์เอกสาร (PDF, Word, Excel):</label>
+                        <input type="file" id="docFile" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-green"><i class="fas fa-upload"></i> อัปโหลดเอกสาร</button>
+                </form>
             </div>
 
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>หมวดหมู่:</label>
-                <input type="text" id="editLessonCategory" class="form-control" style="width: 100%; padding: 8px; margin-top: 5px;">
+            <!-- ตารางแสดงเอกสาร -->
+            <div class="card">
+                <h3>📋 รายการเอกสารดาวน์โหลดทั้งหมด</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อเอกสาร</th>
+                                <th>หมวดหมู่</th>
+                                <th>ปีงบประมาณ</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminDocTableBody">
+                            <!-- JS จะใส่ข้อมูลที่นี่ -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Tab 3: จัดการผู้ใช้งาน ================= -->
+        <div id="tab-users" class="tab-panel">
+            <h2>👥 จัดการผู้ใช้งานระบบเจ้าหน้าที่</h2>
+            
+            <div class="card">
+                <h3>➕ เพิ่มผู้ใช้งานใหม่</h3>
+                <form id="addUserForm">
+                    <div class="form-group">
+                        <label>ชื่อ-นามสกุล / ชื่อผู้ใช้ (Username):</label>
+                        <input type="text" id="username" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>รหัสผ่าน (Password):</label>
+                        <input type="password" id="password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>สิทธิ์การใช้งาน:</label>
+                        <select id="userRole" class="form-control">
+                            <option value="officer">เจ้าหน้าที่ทั่วไป</option>
+                            <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-blue"><i class="fas fa-user-plus"></i> เพิ่มผู้ใช้งาน</button>
+                </form>
             </div>
 
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>สรุปย่อ:</label>
-                <input type="text" id="editLessonSummary" class="form-control" style="width: 100%; padding: 8px; margin-top: 5px;">
+            <div class="card">
+                <h3>📋 รายชื่อผู้ใช้งานในระบบ</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อผู้ใช้งาน</th>
+                                <th>สิทธิ์การใช้งาน</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <!-- JS จะใส่ข้อมูลที่นี่ -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </div>
 
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>รายละเอียดเนื้อหา:</label>
-               <div id="editEditor" style="height: 200px; background: white; border-radius: 6px;"></div>
-            </div>
-          <!-- 📸 ช่องเปลี่ยนรูปภาพประกอบ -->
-          <div class="form-group" style="margin-bottom: 15px;">
-            <label>เปลี่ยนรูปภาพประกอบ (ถ้าต้องการเปลี่ยน):</label>
-            <input type="file" id="editLessonImage" name="image" class="form-control" accept="image/*" style="width: 100%; padding: 8px; margin-top: 5px;">
-          </div>
-
-          <!-- 🎥 ช่องแก้ไขลิงก์วิดีโอ YouTube -->
-          <div class="form-group" style="margin-bottom: 15px;">
-            <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
-            <input type="url" id="editLessonVideo" name="video_url" class="form-control" placeholder="https://www.youtube.com/embed/..." style="width: 100%; padding: 8px; margin-top: 5px;">
-          </div>
-
-            <div style="text-align: right; gap: 10px; display: flex; justify-content: flex-end;">
-                <button type="button" onclick="closeEditModal()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">ยกเลิก</button>
-                <button type="submit" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">บันทึกการแก้ไข</button>
-            </div>
-        </form>
     </div>
-</div>
 
-<!-- 🟢 แก้เป็นแบบนี้ -->
-<script src="admin.js" defer></script>
+    <!-- 🟢 สคริปต์สลับหน้า Tab เมนู -->
+    <script>
+        function switchTab(event, tabId) {
+            event.preventDefault();
+            
+            // ลบ class active จากเมนูเดิม
+            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+            // ซ่อนเนื้อหา Tab เดิม
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+            
+            // ใส่ class active ให้เมนูและ Tab ที่กดเลือก
+            event.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
 
+    <!-- เชื่อมต่อ admin.js -->
+    <script src="admin.js"></script>
 </body>
 </html>
