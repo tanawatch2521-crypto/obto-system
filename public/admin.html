@@ -14,19 +14,16 @@
 
     <style>
         body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; margin: 0; display: flex; height: 100vh; }
-        
         /* Sidebar แถบเมนูด้านข้าง */
         .sidebar { width: 260px; background: #1e293b; color: white; display: flex; flex-direction: column; padding: 20px 0; }
         .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid #334155; }
         .sidebar-menu { list-style: none; padding: 0; margin: 20px 0; }
         .sidebar-menu li a { display: block; padding: 12px 25px; color: #cbd5e1; text-decoration: none; font-size: 16px; border-left: 4px solid transparent; }
         .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #334155; color: white; border-left-color: #2563eb; }
-        
         /* Main Content ส่วนแสดงเนื้อหา */
         .main-content { flex: 1; padding: 30px; overflow-y: auto; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-        
         .card { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; }
         .btn-blue { background: #2563eb; color: white; }
@@ -71,18 +68,17 @@
                         <label>หัวข้อบทเรียน:</label>
                         <input type="text" id="lessonTitle" class="form-control" required>
                     </div>
-                   <div class="form-group">
-    <label>หมวดหมู่:</label>
-    <select id="lessonCategory" class="form-control" style="cursor: pointer;">
-        <option value="">-- เลือกหมวดหมู่บทเรียน --</option>
-        <option value="งานการเงินและบัญชี">งานการเงินและบัญชี</option>
-        <option value="งานพัสดุและทรัพย์สิน">งานพัสดุและทรัพย์สิน</option>
-        <option value="งานจัดเก็บรายได้">งานจัดเก็บรายได้</option>
-        <option value="งานระเบียบและกฎหมายการเงิน">งานระเบียบและกฎหมายการเงิน</option>
-        <option value="อื่นๆ">อื่นๆ</option>
-    </select>
-</div>
-
+                    <div class="form-group">
+                        <label>หมวดหมู่:</label>
+                        <select id="lessonCategory" class="form-control" style="cursor: pointer;">
+                            <option value="">-- เลือกหมวดหมู่บทเรียน --</option>
+                            <option value="งานการเงินและบัญชี">งานการเงินและบัญชี</option>
+                            <option value="งานพัสดุและทรัพย์สิน">งานพัสดุและทรัพย์สิน</option>
+                            <option value="งานจัดเก็บรายได้">งานจัดเก็บรายได้</option>
+                            <option value="งานระเบียบและกฎหมายการเงิน">งานระเบียบและกฎหมายการเงิน</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>สรุปย่อ:</label>
                         <input type="text" id="lessonSummary" class="form-control">
@@ -220,11 +216,62 @@
 
     </div>
 
+    <!-- 🛠️ Modal สำหรับแก้ไขบทเรียน (ป้องกันข้อผิดพลาด #editModal) -->
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #1e293b;">✏️ แก้ไขบทเรียนองค์ความรู้</h3>
+                <button onclick="document.getElementById('editModal').style.display='none'" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
+            </div>
+            
+            <form id="editLessonForm">
+                <input type="hidden" id="editLessonId">
+                
+                <div class="form-group">
+                    <label>หัวข้อบทเรียน:</label>
+                    <input type="text" id="editLessonTitle" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>หมวดหมู่:</label>
+                    <select id="editLessonCategory" class="form-control" style="cursor: pointer;">
+                        <option value="">-- เลือกหมวดหมู่บทเรียน --</option>
+                        <option value="งานการเงินและบัญชี">งานการเงินและบัญชี</option>
+                        <option value="งานพัสดุและทรัพย์สิน">งานพัสดุและทรัพย์สิน</option>
+                        <option value="งานจัดเก็บรายได้">งานจัดเก็บรายได้</option>
+                        <option value="งานระเบียบและกฎหมายการเงิน">งานระเบียบและกฎหมายการเงิน</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>สรุปย่อ:</label>
+                    <input type="text" id="editLessonSummary" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>เนื้อหาบทเรียน:</label>
+                    <div id="editEditor" style="height: 200px; background: white; border-radius: 6px;"></div>
+                    <input type="hidden" id="editLessonContent">
+                </div>
+                
+                <div class="form-group">
+                    <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
+                    <input type="url" id="editLessonVideo" class="form-control">
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="btn" style="background: #94a3b8; color: white;">ยกเลิก</button>
+                    <button type="submit" class="btn btn-blue"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 🟢 สคริปต์สลับหน้า Tab เมนู -->
     <script>
         function switchTab(event, tabId) {
             event.preventDefault();
-            
             // ลบ class active จากเมนูเดิม
             document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
             // ซ่อนเนื้อหา Tab เดิม
