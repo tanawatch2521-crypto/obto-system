@@ -13,43 +13,59 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; margin: 0; display: flex; height: 100vh; }
-        /* Sidebar แถบเมนูด้านข้าง */
-        .sidebar { width: 260px; background: #1e293b; color: white; display: flex; flex-direction: column; padding: 20px 0; }
-        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid #334155; }
-        .sidebar-menu { list-style: none; padding: 0; margin: 20px 0; }
-        .sidebar-menu li a { display: block; padding: 12px 25px; color: #cbd5e1; text-decoration: none; font-size: 16px; border-left: 4px solid transparent; }
-        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #334155; color: white; border-left-color: #2563eb; }
+        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Sidebar แถบเมนูด้านข้าง (ปรับให้รองรับมือถือ) */
+        .sidebar { width: 100%; background: #1e293b; color: white; display: flex; flex-direction: column; padding: 15px 0; box-sizing: border-box; }
+        .sidebar-header { padding: 0 20px 15px; border-bottom: 1px solid #334155; text-align: center; }
+        .sidebar-menu { list-style: none; padding: 0; margin: 15px 0 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        .sidebar-menu li { flex: 1; min-width: 120px; }
+        .sidebar-menu li a { display: block; padding: 10px 12px; color: #cbd5e1; text-decoration: none; font-size: 14px; text-align: center; border-radius: 6px; }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #334155; color: white; }
+        
         /* Main Content ส่วนแสดงเนื้อหา */
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-        .card { background: white; border-radius: 10px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; }
+        .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-family: 'Sarabun'; font-weight: bold; width: 100%; box-sizing: border-box; }
         .btn-blue { background: #2563eb; color: white; }
         .btn-red { background: #dc2626; color: white; }
         .btn-green { background: #16a34a; color: white; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-control { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
         th { background: #f8fafc; color: #475569; }
+
+        /* 💻 รูปแบบสำหรับจอคอมพิวเตอร์ (PC Standard View) */
+        @media (min-width: 768px) {
+            body { flex-direction: row; height: 100vh; }
+            .sidebar { width: 260px; height: 100%; justify-content: flex-start; padding: 20px 0; }
+            .sidebar-header { text-align: left; }
+            .sidebar-menu { flex-direction: column; gap: 0; }
+            .sidebar-menu li { width: 100%; }
+            .sidebar-menu li a { text-align: left; border-radius: 0; padding: 12px 25px; border-left: 4px solid transparent; }
+            .sidebar-menu li a.active { border-left-color: #2563eb; }
+            .main-content { padding: 30px; }
+            .btn { width: auto; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- 🧭 แถบเมนูด้านข้าง (Sidebar) -->
+    <!-- 🧭 แถบเมนู (Sidebar บนคอม / Header บนมือถือ) -->
     <div class="sidebar">
         <div class="sidebar-header">
             <h3 style="margin: 0; color: #60a5fa;">🏛️ ระบบหลังบ้าน</h3>
-            <p style="margin: 5px 0 0; font-size: 13px; color: #94a3b8;">อบต.ตาขีด</p>
+            <p style="margin: 3px 0 0; font-size: 13px; color: #94a3b8;">อบต.ตาขีด</p>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="#" class="active" onclick="switchTab(event, 'tab-lessons')"><i class="fas fa-book"></i> จัดการบทเรียน</a></li>
-            <li><a href="#" onclick="switchTab(event, 'tab-documents')"><i class="fas fa-file-pdf"></i> จัดการเอกสาร</a></li>
-            <li><a href="#" onclick="switchTab(event, 'tab-users')"><i class="fas fa-users"></i> จัดการผู้ใช้งาน</a></li>
-            <li style="margin-top: 30px;"><a href="index.html" style="color: #f87171;"><i class="fas fa-sign-out-alt"></i> กลับหน้าหลัก</a></li>
+            <li><a href="#" class="active" onclick="switchTab(event, 'tab-lessons')"><i class="fas fa-book"></i> บทเรียน</a></li>
+            <li><a href="#" onclick="switchTab(event, 'tab-documents')"><i class="fas fa-file-pdf"></i> เอกสาร</a></li>
+            <li><a href="#" onclick="switchTab(event, 'tab-users')"><i class="fas fa-users"></i> ผู้ใช้งาน</a></li>
+            <li><a href="index.html" style="color: #f87171;"><i class="fas fa-sign-out-alt"></i> หน้าหลัก</a></li>
         </ul>
     </div>
 
@@ -60,7 +76,6 @@
         <div id="tab-lessons" class="tab-panel active">
             <h2>📚 จัดการบทเรียนองค์ความรู้</h2>
             
-            <!-- ฟอร์มเพิ่มบทเรียน -->
             <div class="card">
                 <h3>➕ เพิ่มบทเรียนใหม่</h3>
                 <form id="addLessonForm">
@@ -85,7 +100,7 @@
                     </div>
                     <div class="form-group">
                         <label>เนื้อหาบทเรียน:</label>
-                        <div id="editor" style="height: 200px; background: white; border-radius: 6px;"></div>
+                        <div id="editor" style="height: 180px; background: white; border-radius: 6px;"></div>
                         <input type="hidden" id="lessonContent">
                     </div>
                     <div class="form-group">
@@ -100,7 +115,6 @@
                 </form>
             </div>
 
-            <!-- ตารางแสดงบทเรียน -->
             <div class="card">
                 <h3>📋 รายการบทเรียนทั้งหมด</h3>
                 <div style="overflow-x: auto;">
@@ -112,9 +126,7 @@
                                 <th>จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="lessonTableBody">
-                            <!-- JS จะใส่ข้อมูลที่นี่ -->
-                        </tbody>
+                        <tbody id="lessonTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -124,7 +136,6 @@
         <div id="tab-documents" class="tab-panel">
             <h2>📁 จัดการเอกสารดาวน์โหลด</h2>
             
-            <!-- ฟอร์มอัปโหลดเอกสาร -->
             <div class="card">
                 <h3>📤 อัปโหลดเอกสารใหม่</h3>
                 <form id="uploadDocForm">
@@ -148,7 +159,6 @@
                 </form>
             </div>
 
-            <!-- ตารางแสดงเอกสาร -->
             <div class="card">
                 <h3>📋 รายการเอกสารดาวน์โหลดทั้งหมด</h3>
                 <div style="overflow-x: auto;">
@@ -161,9 +171,7 @@
                                 <th>จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="adminDocTableBody">
-                            <!-- JS จะใส่ข้อมูลที่นี่ -->
-                        </tbody>
+                        <tbody id="adminDocTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -177,7 +185,7 @@
                 <h3>➕ เพิ่มผู้ใช้งานใหม่</h3>
                 <form id="addUserForm">
                     <div class="form-group">
-                        <label>ชื่อ-นามสกุล / ชื่อผู้ใช้ (Username):</label>
+                        <label>ชื่อผู้ใช้ (Username):</label>
                         <input type="text" id="username" class="form-control" required>
                     </div>
                     <div class="form-group">
@@ -206,9 +214,7 @@
                                 <th>จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="userTableBody">
-                            <!-- JS จะใส่ข้อมูลที่นี่ -->
-                        </tbody>
+                        <tbody id="userTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -216,25 +222,23 @@
 
     </div>
 
-    <!-- 🛠️ Modal สำหรับแก้ไขบทเรียน (ป้องกันข้อผิดพลาด #editModal) -->
+    <!-- 🛠️ Modal สำหรับแก้ไขบทเรียน -->
     <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+        <div style="background: white; padding: 20px; border-radius: 10px; width: 92%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; color: #1e293b;">✏️ แก้ไขบทเรียนองค์ความรู้</h3>
+                <h3 style="margin: 0; color: #1e293b;">✏️ แก้ไขบทเรียน</h3>
                 <button onclick="document.getElementById('editModal').style.display='none'" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
             </div>
             
             <form id="editLessonForm">
                 <input type="hidden" id="editLessonId">
-                
                 <div class="form-group">
                     <label>หัวข้อบทเรียน:</label>
                     <input type="text" id="editLessonTitle" class="form-control" required>
                 </div>
-                
                 <div class="form-group">
                     <label>หมวดหมู่:</label>
-                    <select id="editLessonCategory" class="form-control" style="cursor: pointer;">
+                    <select id="editLessonCategory" class="form-control">
                         <option value="">-- เลือกหมวดหมู่บทเรียน --</option>
                         <option value="งานการเงินและบัญชี">งานการเงินและบัญชี</option>
                         <option value="งานพัสดุและทรัพย์สิน">งานพัสดุและทรัพย์สิน</option>
@@ -243,23 +247,19 @@
                         <option value="อื่นๆ">อื่นๆ</option>
                     </select>
                 </div>
-                
                 <div class="form-group">
                     <label>สรุปย่อ:</label>
                     <input type="text" id="editLessonSummary" class="form-control">
                 </div>
-                
                 <div class="form-group">
                     <label>เนื้อหาบทเรียน:</label>
-                    <div id="editEditor" style="height: 200px; background: white; border-radius: 6px;"></div>
+                    <div id="editEditor" style="height: 180px; background: white; border-radius: 6px;"></div>
                     <input type="hidden" id="editLessonContent">
                 </div>
-                
                 <div class="form-group">
                     <label>ลิงก์วิดีโอ (YouTube Embed URL):</label>
                     <input type="url" id="editLessonVideo" class="form-control">
                 </div>
-                
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" onclick="document.getElementById('editModal').style.display='none'" class="btn" style="background: #94a3b8; color: white;">ยกเลิก</button>
                     <button type="submit" class="btn btn-blue"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
@@ -268,22 +268,15 @@
         </div>
     </div>
 
-    <!-- 🟢 สคริปต์สลับหน้า Tab เมนู -->
     <script>
         function switchTab(event, tabId) {
             event.preventDefault();
-            // ลบ class active จากเมนูเดิม
             document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-            // ซ่อนเนื้อหา Tab เดิม
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
-            
-            // ใส่ class active ให้เมนูและ Tab ที่กดเลือก
             event.currentTarget.classList.add('active');
             document.getElementById(tabId).classList.add('active');
         }
     </script>
-
-    <!-- เชื่อมต่อ admin.js -->
     <script src="admin.js"></script>
 </body>
 </html>
