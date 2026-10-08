@@ -4,7 +4,6 @@
 let quill, editQuill;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. ตัวแก้ไขข้อความ Quill Editor
     if (document.getElementById('editor') && typeof Quill !== 'undefined') {
         quill = new Quill('#editor', { theme: 'snow', placeholder: 'พิมพ์เนื้อหาบทเรียน...' });
     }
@@ -12,12 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
         editQuill = new Quill('#editEditor', { theme: 'snow', placeholder: 'แก้ไขเนื้อหาบทเรียน...' });
     }
 
-    // โหลดข้อมูลเข้าตารางเมื่อเปิดหน้า
     loadUsers();
     loadAdminDocuments();
     loadAdminLessons();
 
-    // 2. ฟอร์มเพิ่มผู้ใช้งาน
     const addUserForm = document.getElementById('addUserForm');
     if (addUserForm) {
         addUserForm.addEventListener('submit', async (e) => {
@@ -44,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. ฟอร์มอัปโหลดเอกสาร
     const uploadDocForm = document.getElementById('uploadDocForm');
     if (uploadDocForm) {
         uploadDocForm.addEventListener('submit', async (e) => {
@@ -80,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. บันทึกบทเรียนใหม่
     const btnSaveLesson = document.getElementById('btnSaveLesson');
     if (btnSaveLesson) {
         btnSaveLesson.addEventListener('click', async () => {
@@ -116,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 5. แก้ไขบทเรียน
     const editLessonForm = document.getElementById('editLessonForm');
     if (editLessonForm) {
         editLessonForm.addEventListener('submit', async (e) => {
@@ -150,9 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ==========================================
-// 👥 โหลดผู้ใช้งาน
-// ==========================================
 async function loadUsers() {
     const userTableBody = document.getElementById('userTableBody') || document.getElementById('adminUserTableBody');
     if (!userTableBody) return;
@@ -191,9 +182,6 @@ async function deleteUser(id) {
     } catch (err) { console.error('Error deleting user:', err); }
 }
 
-// ==========================================
-// 📄 โหลดและลบเอกสาร
-// ==========================================
 async function loadAdminDocuments() {
     try {
         const res = await fetch('/api/documents');
@@ -239,9 +227,6 @@ window.deleteDoc = async function(id) {
 };
 window.deleteDocument = window.deleteDoc;
 
-// ==========================================
-// 📚 โหลดและลบบทเรียน
-// ==========================================
 async function loadAdminLessons() {
     const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
     if (!tableBody) return;
