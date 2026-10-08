@@ -151,18 +151,28 @@ function searchLessons() {
 // ==========================================
 // 4. ฟังก์ชันจัดการคลังเอกสาร (Documents)
 // ==========================================
+
 let allDocuments = [];
 
 async function loadDocuments() {
     try {
         const response = await fetch('/api/documents');
         const result = await response.json();
-        allDocuments = result.data || result; 
-
+        
+        // รองรับทั้งกรณีส่งมาเป็น array ตรงๆ หรือซ้อนอยู่ใน object { data: [...] }
+        allDocuments = Array.isArray(result) ? result : (result.data || []); 
+        
         renderDocumentTable(allDocuments);
-        populateFiscalYearDropdown(allDocuments);
+        
+        if (typeof populateFiscalYearDropdown === 'function') {
+            populateFiscalYearDropdown(allDocuments);
+        }
     } catch (err) {
         console.error('Error loading documents:', err);
+        const tableBody = document.getElementById('documentTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ef4444; padding: 15px;">เกิดข้อผิดพลาดในการดึงข้อมูลเอกสาร</td></tr>';
+        }
     }
 }
 
@@ -178,13 +188,30 @@ function renderDocumentTable(docs) {
     }
 
     docs.forEach(doc => {
+        // 1. ดึงชื่อเอกสารให้ครอบคลุมทุกชื่อฟิลด์ที่เป็นไปได้
+        const title = doc.title || doc.doc_title || doc.name || doc.filename || 'ไม่มีชื่อเอกสาร';
+        
+        // 2. ดึงหมวดหมู่
+        const category = doc.category || doc.doc_category || '-';
+        
+        // 3. ดึงปีงบประมาณ
+        const year = doc.year || doc.fiscalYear || doc.fiscal_year || doc.doc_year || '-';
+        
+        // 4. จัดการ Path ไฟล์ดาวน์โหลดให้ถูกต้อง (ถ้าเป็นชื่อไฟล์เปล่าๆ จะเติม /uploads/ ให้ข้างหน้า)
+        let rawPath = doc.file_url || doc.filePath || doc.file_path || doc.filename || doc.file || '#';
+        let downloadUrl = rawPath;
+        if (rawPath !== '#' && !rawPath.startsWith('http') && !rawPath.startsWith('/')) {
+            downloadUrl = `/uploads/${rawPath}`;
+        }
+
         const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #e2e8f0';
         tr.innerHTML = `
-            <td style="padding: 12px; font-weight: 600;">${doc.title || doc.name || 'ไม่มีชื่อเอกสาร'}</td>
-            <td style="padding: 12px; color: #2563eb;">${doc.category || '-'}</td>
-            <td style="padding: 12px;">${doc.fiscal_year || doc.year || '-'}</td>
-            <td style="padding: 12px;">
-                <a href="${doc.file_path || doc.filePath || '#'}" download class="btn-download" style="background: #10b981; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; display: inline-block;">
+            <td style="padding: 12px; font-weight: 600; color: #1e293b;">${title}</td>
+            <td style="padding: 12px; color: #2563eb;">${category}</td>
+            <td style="padding: 12px; color: #64748b;">${year}</td>
+            <td style="padding: 12px; text-align: center;">
+                <a href="${downloadUrl}" download target="_blank" class="btn-download" style="background: #10b981; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-weight: bold; font-size: 13px;">
                     📥 ดาวน์โหลด
                 </a>
             </td>
