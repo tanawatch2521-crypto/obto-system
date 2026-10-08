@@ -82,30 +82,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. ฟอร์มอัปโหลดเอกสาร
-    const docForm = document.getElementById('documentForm') || document.getElementById('uploadDocForm');
-    if (docForm) {
-        docForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(docForm);
+    // ฟังก์ชันอัปโหลดเอกสาร
+const uploadDocForm = document.getElementById('uploadDocForm');
+if (uploadDocForm) {
+    uploadDocForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const titleInput = document.getElementById('docTitle');
+        const categoryInput = document.getElementById('docCategory');
+        const yearInput = document.getElementById('docYear');
+        const fileInput = document.getElementById('docFile');
 
-            try {
-                const response = await fetch('/api/documents', {
-                    method: 'POST',
-                    body: formData
-                });
-                if (response.ok) {
-                    alert('อัปโหลดเอกสารสำเร็จ!');
-                    docForm.reset();
-                    loadAdminDocuments();
-                } else {
-                    alert('เกิดข้อผิดพลาดในการอัปโหลด');
-                }
-            } catch (err) {
-                console.error('Error uploading document:', err);
+        if (!fileInput.files[0]) {
+            alert('กรุณาเลือกไฟล์เอกสาร');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('title', titleInput.value);
+        formData.append('category', categoryInput.value || 'ทั่วไป');
+        formData.append('year', yearInput.value || '-');
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            const res = await fetch('/api/documents', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                alert('อัปโหลดเอกสารเรียบร้อยแล้ว!');
+                uploadDocForm.reset();
+                loadAdminDocuments(); // โหลดรายการใหม่
+            } else {
+                alert('เกิดข้อผิดพลาดในการอัปโหลด');
             }
-        });
-    }
+        } catch (err) {
+            console.error(err);
+            alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+        }
+    });
+}
+
 
     // 4. ปุ่มบันทึกบทเรียน
     const btnSaveLesson = document.getElementById('btnSaveLesson');
