@@ -322,6 +322,7 @@ async function deleteUser(id) {
 // 📄 โหลดเอกสาร (Documents)
 // ==========================================
 // ฟังก์ชันโหลดรายการเอกสารฝั่ง Admin
+// ฟังก์ชันโหลดรายการเอกสารฝั่ง Admin
 async function loadAdminDocuments() {
     try {
         const res = await fetch('/api/documents');
@@ -334,10 +335,9 @@ async function loadAdminDocuments() {
         tbody.innerHTML = '';
 
         docs.forEach(doc => {
-            // ดึง ID ของเอกสาร (รองรับทั้ง id และ _id)
-            const docId = doc._id || doc.id;
+            // ดึง ID ของเอกสาร (รองรับ id, _id และ doc_id)
+            const docId = doc.id || doc._id || doc.doc_id;
             
-            // ดึงชื่อเอกสารจากทุกฟิลด์ที่เป็นไปได้
             const docTitle = doc.title || doc.doc_title || doc.name || doc.filename || 'ไม่มีชื่อเอกสาร';
             const docCategory = doc.category || doc.doc_category || '-';
             const docYear = doc.year || doc.fiscal_year || doc.fiscalYear || '-';
@@ -348,8 +348,7 @@ async function loadAdminDocuments() {
                 <td style="padding: 10px;">${docCategory}</td>
                 <td style="padding: 10px;">${docYear}</td>
                 <td style="padding: 10px;">
-                    <!-- 🟢 เรียกใช้ทั้ง deleteDoc และ deleteDocument เพื่อความปลอดภัย -->
-                    <button onclick="deleteDoc('${docId}')" class="btn btn-red" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                    <button onclick="window.deleteDoc('${docId}')" class="btn btn-red" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
                         🗑️ ลบ
                     </button>
                 </td>
@@ -360,6 +359,7 @@ async function loadAdminDocuments() {
         console.error('Error loading admin docs:', err);
     }
 }
+
 
 // 🟢 ฟังก์ชันลบเอกสาร (สร้าง Alias ให้ทั้ง deleteDoc และ deleteDocument ใช้งานได้ทั้งคู่)
 async function deleteDoc(id) {
@@ -515,3 +515,42 @@ function closeEditModal() {
         modal.style.display = 'none';
     }
 }
+// ==========================================
+// 🗑️ ฟังก์ชันลบเอกสาร (Global Scope)
+// ==========================================
+window.deleteDoc = async function(id) {
+    console.log('Deleting doc ID:', id);
+
+    if (!id || id === 'undefined' || id === 'null') {
+        alert('ไม่พบ ID ของเอกสารในระบบ ไม่สามารถลบได้');
+        return;
+    }
+
+    if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/documents/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert('ลบเอกสารเรียบร้อยแล้ว!');
+            if (typeof loadAdminDocuments === 'function') {
+                loadAdminDocuments();
+            } else {
+                location.reload();
+            }
+        } else {
+            const errData = await response.json().catch(() => ({}));
+            alert('ไม่สามารถลบเอกสารได้: ' + (errData.message || 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์'));
+        }
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อลบข้อมูลได้');
+    }
+};
+
+// สำรองไว้กรณีเรียกผ่านชื่อ deleteDocument
+window.deleteDocument = window.deleteDoc;
