@@ -139,24 +139,35 @@
             <div class="card">
                 <h3>📤 อัปโหลดเอกสารใหม่</h3>
                 <form id="uploadDocForm">
-                    <div class="form-group">
-                        <label>ชื่อเอกสาร / แบบฟอร์ม:</label>
-                        <input type="text" id="docTitle" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>หมวดหมู่เอกสาร:</label>
-                        <input type="text" id="docCategory" class="form-control" placeholder="เช่น การเงิน, พัสดุ">
-                    </div>
-                    <div class="form-group">
-                        <label>ปีงบประมาณ:</label>
-                        <input type="number" id="docYear" class="form-control" placeholder="เช่น 2567">
-                    </div>
-                    <div class="form-group">
-                        <label>เลือกไฟล์เอกสาร (PDF, Word, Excel):</label>
-                        <input type="file" id="docFile" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-green"><i class="fas fa-upload"></i> อัปโหลดเอกสาร</button>
-                </form>
+    <div>
+        <label>ชื่อเอกสาร / แบบฟอร์ม:</label>
+        <!-- ⚠️ สำคัญมาก: ต้องมี id="docTitle" และ name="title" -->
+        <input type="text" id="docTitle" name="title" placeholder="กรอกชื่อเอกสาร" required>
+    </div>
+
+    <div>
+        <label>หมวดหมู่:</label>
+        <select id="docCategory" name="category">
+            <option value="การเงิน">การเงิน</option>
+            <option value="การคลัง">การคลัง</option>
+            <option value="พัสดุ">พัสดุ</option>
+            <option value="ทั่วไป">ทั่วไป</option>
+        </select>
+    </div>
+
+    <div>
+        <label>ปีงบประมาณ:</label>
+        <input type="text" id="docYear" name="year" placeholder="เช่น 2569">
+    </div>
+
+    <div>
+        <label>เลือกไฟล์เอกสาร (PDF, Word, Excel):</label>
+        <input type="file" id="docFile" name="file" required>
+    </div>
+
+    <button type="submit" class="btn btn-green">📤 อัปโหลดเอกสาร</button>
+</form>
+
             </div>
 
             <div class="card">
