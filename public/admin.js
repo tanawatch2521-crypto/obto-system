@@ -1,5 +1,5 @@
 // ==========================================
-// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน (ฉบับแก้ไขสมบูรณ์)
+// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน (ฉบับแก้ไข SyntaxError สมบูรณ์)
 // ==========================================
 let quill;
 let editQuill;
@@ -234,68 +234,4 @@ async function loadUsers() {
     const userTableBody = document.getElementById('userTableBody') || document.getElementById('adminUserTableBody');
     if (!userTableBody) return;
 
-    try {
-        const response = await fetch('/api/users');
-        const result = await response.json();
-        const users = Array.isArray(result) ? result : (result.data || []);
-
-        userTableBody.innerHTML = '';
-        if (!Array.isArray(users) || users.length === 0) {
-            userTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 15px;">ไม่พบผู้ใช้งาน</td></tr>';
-            return;
-        }
-
-        users.forEach(user => {
-            const row = document.createElement('tr');
-            const displayName = user.fullname || user.name || '-';
-            const isMainAdmin = (user.id === 1 || user.username === 'admin');
-            const deleteBtnHTML = isMainAdmin
-                ? `<span style="color: #94a3b8; font-size: 13px;">🔒 ห้ามลบ</span>`
-                : `<button onclick="deleteUser(${user.id})" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">ลบ</button>`;
-
-            row.innerHTML = `
-                <td>${user.id}</td>
-                <td><strong>${user.username}</strong></td>
-                <td>${displayName}</td>
-                <td>${deleteBtnHTML}</td>
-            `;
-            userTableBody.appendChild(row);
-        });
-    } catch (err) {
-        console.error('Error loading users:', err);
-    }
-}
-
-async function deleteUser(id) {
-    if (id === 1 || id === '1') {
-        alert('ไม่สามารถลบบัญชี Admin หลักของระบบได้!');
-        return;
-    }
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้?')) return;
-
-    try {
-        const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('ลบผู้ใช้งานเรียบร้อยแล้ว');
-            loadUsers();
-        } else {
-            const result = await response.json();
-            alert(result.message || 'ไม่สามารถลบผู้ใช้งานได้');
-        }
-    } catch (err) {
-        console.error('Error deleting user:', err);
-    }
-}
-
-// ==========================================
-// 📄 โหลดเอกสาร (Documents)
-// ==========================================
-async function loadAdminDocuments() {
-    try {
-        const res = await fetch('/api/documents');
-        const result = await res.json();
-        const docs = Array.isArray(result) ? result : (result.data || []);
-
-        const tbody = document.getElementById('adminDocTableBody') || document.querySelector('#adminDocTable body');
-        if (!tbody) return;
-
+    try
