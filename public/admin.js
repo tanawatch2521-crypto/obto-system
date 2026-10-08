@@ -82,26 +82,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ฟังก์ชันอัปโหลดเอกสาร
+    // ฟังก์ชันจัดการการอัปโหลดเอกสารฝั่ง Admin
 const uploadDocForm = document.getElementById('uploadDocForm');
 if (uploadDocForm) {
     uploadDocForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
+        // ดึง Element จากหน้า HTML
         const titleInput = document.getElementById('docTitle');
         const categoryInput = document.getElementById('docCategory');
         const yearInput = document.getElementById('docYear');
         const fileInput = document.getElementById('docFile');
 
-        if (!fileInput.files[0]) {
-            alert('กรุณาเลือกไฟล์เอกสาร');
+        if (!fileInput || !fileInput.files[0]) {
+            alert('กรุณาเลือกไฟล์เอกสารก่อนกดอัปโหลด');
             return;
         }
 
         const formData = new FormData();
-        formData.append('title', titleInput.value);
-        formData.append('category', categoryInput.value || 'ทั่วไป');
-        formData.append('year', yearInput.value || '-');
+        
+        // ⚠️ ส่งชื่อเอกสารไปทุกคีย์ที่เป็นไปได้ เพื่อให้ครอบคลุม Backend ทุกรูปแบบ
+        const titleValue = titleInput ? titleInput.value.trim() : '';
+        formData.append('title', titleValue);
+        formData.append('doc_title', titleValue);
+        formData.append('name', titleValue);
+
+        // ส่งข้อมูลหมวดหมู่และปีงบประมาณ
+        formData.append('category', categoryInput ? categoryInput.value : 'ทั่วไป');
+        formData.append('year', yearInput ? yearInput.value : '-');
+        formData.append('fiscal_year', yearInput ? yearInput.value : '-');
+
+        // ส่งไฟล์
         formData.append('file', fileInput.files[0]);
 
         try {
@@ -112,18 +123,24 @@ if (uploadDocForm) {
 
             if (res.ok) {
                 alert('อัปโหลดเอกสารเรียบร้อยแล้ว!');
-                uploadDocForm.reset();
-                loadAdminDocuments(); // โหลดรายการใหม่
+                uploadDocForm.reset(); // ล้างข้อมูลในฟอร์ม
+                
+                // โหลดตารางใหม่
+                if (typeof loadAdminDocuments === 'function') {
+                    loadAdminDocuments();
+                } else {
+                    location.reload();
+                }
             } else {
-                alert('เกิดข้อผิดพลาดในการอัปโหลด');
+                const errData = await res.json().catch(() => ({}));
+                alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + (errData.message || 'เซิร์ฟเวอร์ปฏิเสธการอัปโหลด'));
             }
         } catch (err) {
-            console.error(err);
-            alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+            console.error('Upload Error:', err);
+            alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
         }
     });
 }
-
 
     // 4. ปุ่มบันทึกบทเรียน
     const btnSaveLesson = document.getElementById('btnSaveLesson');
@@ -308,27 +325,28 @@ async function deleteUser(id) {
 async function loadAdminDocuments() {
     try {
         const res = await fetch('/api/documents');
-        const docs = await res.json();
-        
-        const tbody = document.getElementById('adminDocTableBody');
+        const result = await res.json();
+        const docs = Array.isArray(result) ? result : (result.data || []);
+
+        const tbody = document.getElementById('adminDocTableBody') || document.querySelector('#adminDocTable body');
         if (!tbody) return;
-        
+
         tbody.innerHTML = '';
-        
+
         docs.forEach(doc => {
-            // ดึงค่าชื่อเอกสารแบบครอบคลุม ป้องกันปัญหา null / ไม่มีชื่อเอกสาร
-            const docTitle = doc.title || doc.name || doc.doc_title || 'ไม่มีชื่อเอกสาร';
+            // ดึงชื่อเอกสารจากทุกฟิลด์ที่เป็นไปได้
+            const docTitle = doc.title || doc.doc_title || doc.name || doc.filename || 'ไม่มีชื่อเอกสาร';
             const docCategory = doc.category || doc.doc_category || '-';
-            const docYear = doc.year || doc.doc_year || '-';
-            
+            const docYear = doc.year || doc.fiscal_year || doc.fiscalYear || '-';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${docTitle}</td>
-                <td>${docCategory}</td>
-                <td>${docYear}</td>
-                <td>
-                    <button onclick="deleteDoc('${doc.id || doc._id}')" class="btn btn-red" style="padding: 4px 8px; font-size: 12px;">
-                        <i class="fas fa-trash"></i> ลบ
+                <td style="padding: 10px;">${docTitle}</td>
+                <td style="padding: 10px;">${docCategory}</td>
+                <td style="padding: 10px;">${docYear}</td>
+                <td style="padding: 10px;">
+                    <button onclick="deleteDoc('${doc.id || doc._id}')" class="btn btn-red" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                        🗑️ ลบ
                     </button>
                 </td>
             `;
