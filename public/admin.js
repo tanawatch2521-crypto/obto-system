@@ -304,40 +304,41 @@ async function deleteUser(id) {
 // ==========================================
 // 📄 โหลดเอกสาร (Documents)
 // ==========================================
+// ฟังก์ชันโหลดรายการเอกสารฝั่ง Admin
 async function loadAdminDocuments() {
-    const docTableBody = document.getElementById('adminDocTableBody') || document.getElementById('docTableBody');
-    if (!docTableBody) return;
-
     try {
-        const response = await fetch('/api/documents');
-        const result = await response.json();
-        const docs = Array.isArray(result) ? result : (result.data || []);
-
-        docTableBody.innerHTML = '';
-        if (!docs || docs.length === 0) {
-            docTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 15px;">ยังไม่มีเอกสารในระบบ</td></tr>`;
-            return;
-        }
-
+        const res = await fetch('/api/documents');
+        const docs = await res.json();
+        
+        const tbody = document.getElementById('adminDocTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        
         docs.forEach(doc => {
+            // ดึงค่าชื่อเอกสารแบบครอบคลุม ป้องกันปัญหา null / ไม่มีชื่อเอกสาร
+            const docTitle = doc.title || doc.name || doc.doc_title || 'ไม่มีชื่อเอกสาร';
+            const docCategory = doc.category || doc.doc_category || '-';
+            const docYear = doc.year || doc.doc_year || '-';
+            
             const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid #e2e8f0';
             tr.innerHTML = `
-                <td style="padding: 10px;">${doc.title}</td>
-                <td style="padding: 10px;">${doc.category || '-'}</td>
-                <td style="padding: 10px;">${doc.fiscal_year || '-'}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <button onclick="deleteDocument(${doc.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
-                        🗑️ ลบ
+                <td>${docTitle}</td>
+                <td>${docCategory}</td>
+                <td>${docYear}</td>
+                <td>
+                    <button onclick="deleteDoc('${doc.id || doc._id}')" class="btn btn-red" style="padding: 4px 8px; font-size: 12px;">
+                        <i class="fas fa-trash"></i> ลบ
                     </button>
                 </td>
             `;
-            docTableBody.appendChild(tr);
+            tbody.appendChild(tr);
         });
     } catch (err) {
-        console.error('Error loading documents:', err);
+        console.error('Error loading admin docs:', err);
     }
 }
+
 
 async function deleteDocument(id) {
     if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) return;
