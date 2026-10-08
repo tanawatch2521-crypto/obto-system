@@ -1,11 +1,11 @@
 // ==========================================
-// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
+// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน (ฉบับแก้ไขสมบูรณ์)
 // ==========================================
 let quill;
-let editQuill; // 🟢 เพิ่มตัวแปรนี้เข้ามาครับ
+let editQuill;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 🟢 1. เปิดใช้งาน Quill Editor เมื่อ DOM โหลดเสร็จเรียบร้อยแล้ว
+    // 1. เปิดใช้งาน Quill Editor
     const editorContainer = document.getElementById('editor');
     if (editorContainer && typeof Quill !== 'undefined') {
         quill = new Quill('#editor', {
@@ -15,15 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     [{ 'header': [1, 2, 3, false] }],
                     ['bold', 'italic', 'underline', 'strike'],
                     [{ 'color': [] }, { 'background': [] }],
-                    ['image', 'link'], // 🖼️ ปุ่มสำหรับแทรกรูปภาพ
+                    ['image', 'link'],
                     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                     ['clean']
                 ]
             },
-            placeholder: 'พิมพ์เนื้อหาบทเรียน... สามารถก๊อปปี้รูปภาพมาวาง หรือกดปุ่มรูปภาพเพื่อแทรกได้หลายๆ รูปเลยครับ'
+            placeholder: 'พิมพ์เนื้อหาบทเรียน...'
         });
     }
-    // 🟢 เพิ่มส่วนนี้ใต้ quill ตัวแรกครับ
+
     const editEditorContainer = document.getElementById('editEditor');
     if (editEditorContainer && typeof Quill !== 'undefined') {
         editQuill = new Quill('#editEditor', {
@@ -82,65 +82,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ฟังก์ชันจัดการการอัปโหลดเอกสารฝั่ง Admin
-const uploadDocForm = document.getElementById('uploadDocForm');
-if (uploadDocForm) {
-    uploadDocForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // 3. ฟอร์มอัปโหลดเอกสารฝั่ง Admin
+    const uploadDocForm = document.getElementById('uploadDocForm');
+    if (uploadDocForm) {
+        uploadDocForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        // ดึง Element จากหน้า HTML
-        const titleInput = document.getElementById('docTitle');
-        const categoryInput = document.getElementById('docCategory');
-        const yearInput = document.getElementById('docYear');
-        const fileInput = document.getElementById('docFile');
+            const titleInput = document.getElementById('docTitle');
+            const categoryInput = document.getElementById('docCategory');
+            const yearInput = document.getElementById('docYear');
+            const fileInput = document.getElementById('docFile');
 
-        if (!fileInput || !fileInput.files[0]) {
-            alert('กรุณาเลือกไฟล์เอกสารก่อนกดอัปโหลด');
-            return;
-        }
+            if (!fileInput || !fileInput.files[0]) {
+                alert('กรุณาเลือกไฟล์เอกสารก่อนกดอัปโหลด');
+                return;
+            }
 
-        const formData = new FormData();
-        
-        // ⚠️ ส่งชื่อเอกสารไปทุกคีย์ที่เป็นไปได้ เพื่อให้ครอบคลุม Backend ทุกรูปแบบ
-        const titleValue = titleInput ? titleInput.value.trim() : '';
-        formData.append('title', titleValue);
-        formData.append('doc_title', titleValue);
-        formData.append('name', titleValue);
+            const formData = new FormData();
+            const titleValue = titleInput ? titleInput.value.trim() : '';
+            formData.append('title', titleValue);
+            formData.append('doc_title', titleValue);
+            formData.append('name', titleValue);
 
-        // ส่งข้อมูลหมวดหมู่และปีงบประมาณ
-        formData.append('category', categoryInput ? categoryInput.value : 'ทั่วไป');
-        formData.append('year', yearInput ? yearInput.value : '-');
-        formData.append('fiscal_year', yearInput ? yearInput.value : '-');
+            formData.append('category', categoryInput ? categoryInput.value : 'ทั่วไป');
+            formData.append('year', yearInput ? yearInput.value : '-');
+            formData.append('fiscal_year', yearInput ? yearInput.value : '-');
 
-        // ส่งไฟล์
-        formData.append('file', fileInput.files[0]);
+            formData.append('file', fileInput.files[0]);
 
-        try {
-            const res = await fetch('/api/documents', {
-                method: 'POST',
-                body: formData
-            });
+            try {
+                const res = await fetch('/api/documents', {
+                    method: 'POST',
+                    body: formData
+                });
 
-            if (res.ok) {
-                alert('อัปโหลดเอกสารเรียบร้อยแล้ว!');
-                uploadDocForm.reset(); // ล้างข้อมูลในฟอร์ม
-                
-                // โหลดตารางใหม่
-                if (typeof loadAdminDocuments === 'function') {
+                if (res.ok) {
+                    alert('อัปโหลดเอกสารเรียบร้อยแล้ว!');
+                    uploadDocForm.reset();
                     loadAdminDocuments();
                 } else {
-                    location.reload();
+                    const errData = await res.json().catch(() => ({}));
+                    alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + (errData.message || 'เซิร์ฟเวอร์ปฏิเสธการอัปโหลด'));
                 }
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + (errData.message || 'เซิร์ฟเวอร์ปฏิเสธการอัปโหลด'));
+            } catch (err) {
+                console.error('Upload Error:', err);
+                alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
             }
-        } catch (err) {
-            console.error('Upload Error:', err);
-            alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
-        }
-    });
-}
+        });
+    }
 
     // 4. ปุ่มบันทึกบทเรียน
     const btnSaveLesson = document.getElementById('btnSaveLesson');
@@ -151,17 +140,10 @@ if (uploadDocForm) {
             const summary = document.getElementById('lessonSummary')?.value.trim();
             const video_url = document.getElementById('lessonVideo')?.value.trim();
             
-            // 🟢 ประกาศตัวแปรรูปภาพประกอบหน้าการ์ด
             const imageInput = document.getElementById('lessonImage');
             const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
 
-            // 🟢 ดึงเนื้อหาจาก Quill Editor (ถ้ามี) หรือจาก textarea
-            let content = '';
-            if (quill) {
-                content = quill.root.innerHTML;
-            } else {
-                content = document.getElementById('lessonContent')?.value.trim() || '';
-            }
+            let content = quill ? quill.root.innerHTML : (document.getElementById('lessonContent')?.value.trim() || '');
 
             if (!title) {
                 alert('กรุณากรอกหัวข้อบทเรียน');
@@ -174,9 +156,7 @@ if (uploadDocForm) {
             formData.append('summary', summary);
             formData.append('content', content);
             formData.append('video_url', video_url);
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
+            if (imageFile) formData.append('image', imageFile);
 
             try {
                 const response = await fetch('/api/lessons', {
@@ -191,17 +171,7 @@ if (uploadDocForm) {
                     if (document.getElementById('lessonTitle')) document.getElementById('lessonTitle').value = '';
                     if (document.getElementById('lessonCategory')) document.getElementById('lessonCategory').value = '';
                     if (document.getElementById('lessonSummary')) document.getElementById('lessonSummary').value = '';
-                    
-                    // 🟢 ล้างกล่องพิมพ์ Quill
-                    if (quill) {
-                        quill.setText('');
-                    } else if (document.getElementById('lessonContent')) {
-                        document.getElementById('lessonContent').value = '';
-                    }
-
-                    if (document.getElementById('lessonVideo')) document.getElementById('lessonVideo').value = '';
-                    if (document.getElementById('lessonImage')) document.getElementById('lessonImage').value = '';
-
+                    if (quill) quill.setText('');
                     loadAdminLessons();
                 } else {
                     alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถบันทึกได้'));
@@ -212,7 +182,7 @@ if (uploadDocForm) {
             }
         });
     }
-});
+
     // 5. ฟอร์มบันทึกการแก้ไขบทเรียน (Update Lesson)
     const editLessonForm = document.getElementById('editLessonForm');
     if (editLessonForm) {
@@ -234,9 +204,7 @@ if (uploadDocForm) {
             formData.append('summary', summary);
             formData.append('content', content);
             formData.append('video_url', video_url);
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
+            if (imageFile) formData.append('image', imageFile);
 
             try {
                 const response = await fetch(`/api/lessons/${id}`, {
@@ -247,7 +215,7 @@ if (uploadDocForm) {
                 if (response.ok) {
                     alert('อัปเดตบทเรียนสำเร็จ!');
                     closeEditModal();
-                    loadAdminLessons(); // โหลดตารางใหม่
+                    loadAdminLessons();
                 } else {
                     alert('เกิดข้อผิดพลาดในการอัปเดตบทเรียน');
                 }
@@ -257,6 +225,7 @@ if (uploadDocForm) {
             }
         });
     }
+});
 
 // ==========================================
 // 👥 โหลดผู้ใช้งาน (Users)
@@ -268,7 +237,7 @@ async function loadUsers() {
     try {
         const response = await fetch('/api/users');
         const result = await response.json();
-        const users = result.data || result;
+        const users = Array.isArray(result) ? result : (result.data || []);
 
         userTableBody.innerHTML = '';
         if (!Array.isArray(users) || users.length === 0) {
@@ -321,8 +290,6 @@ async function deleteUser(id) {
 // ==========================================
 // 📄 โหลดเอกสาร (Documents)
 // ==========================================
-// ฟังก์ชันโหลดรายการเอกสารฝั่ง Admin
-// ฟังก์ชันโหลดรายการเอกสารฝั่ง Admin
 async function loadAdminDocuments() {
     try {
         const res = await fetch('/api/documents');
@@ -332,225 +299,3 @@ async function loadAdminDocuments() {
         const tbody = document.getElementById('adminDocTableBody') || document.querySelector('#adminDocTable body');
         if (!tbody) return;
 
-        tbody.innerHTML = '';
-
-        docs.forEach(doc => {
-            // ดึง ID ของเอกสาร (รองรับ id, _id และ doc_id)
-            const docId = doc.id || doc._id || doc.doc_id;
-            
-            const docTitle = doc.title || doc.doc_title || doc.name || doc.filename || 'ไม่มีชื่อเอกสาร';
-            const docCategory = doc.category || doc.doc_category || '-';
-            const docYear = doc.year || doc.fiscal_year || doc.fiscalYear || '-';
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="padding: 10px;">${docTitle}</td>
-                <td style="padding: 10px;">${docCategory}</td>
-                <td style="padding: 10px;">${docYear}</td>
-                <td style="padding: 10px;">
-                    <button onclick="window.deleteDoc('${docId}')" class="btn btn-red" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">
-                        🗑️ ลบ
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (err) {
-        console.error('Error loading admin docs:', err);
-    }
-}
-
-
-// 🟢 ฟังก์ชันลบเอกสาร (สร้าง Alias ให้ทั้ง deleteDoc และ deleteDocument ใช้งานได้ทั้งคู่)
-async function deleteDoc(id) {
-    if (!id || id === 'undefined' || id === 'null') {
-        alert('ไม่พบ ID ของเอกสาร ไม่สามารถลบได้');
-        return;
-    }
-
-    if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) return;
-
-    try {
-        const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('ลบเอกสารเรียบร้อยแล้ว!');
-            loadAdminDocuments();
-        } else {
-            const errData = await response.json().catch(() => ({}));
-            alert('เกิดข้อผิดพลาดในการลบเอกสาร: ' + (errData.message || ''));
-        }
-    } catch (err) {
-        console.error('Error deleting document:', err);
-        alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อลบข้อมูลได้');
-    }
-}
-
-// ผูกฟังก์ชัน deleteDocument เข้ากับ deleteDoc ป้องกันการเรียกผิดชื่อ
-const deleteDocument = deleteDoc;
-
-
-async function deleteDocument(id) {
-    if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) return;
-    try {
-        const response = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('ลบเอกสารเรียบร้อยแล้ว!');
-            loadAdminDocuments();
-        } else {
-            alert('เกิดข้อผิดพลาดในการลบเอกสาร');
-        }
-    } catch (err) {
-        console.error('Error deleting document:', err);
-    }
-}
-
-// ==========================================
-// 📚 โหลดบทเรียน (Lessons)
-// ==========================================
-async function loadAdminLessons() {
-    const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
-    if (!tableBody) return;
-
-    try {
-        const response = await fetch('/api/lessons');
-        const result = await response.json();
-        const lessons = Array.isArray(result) ? result : (result.data || []);
-
-        tableBody.innerHTML = '';
-        if (!lessons || lessons.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">ยังไม่มีบทเรียนในระบบ</td></tr>';
-            return;
-        }
-
-        lessons.forEach(lesson => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid #e2e8f0';
-
-            const hasImage = lesson.image_url ? '🖼️' : '';
-            const hasVideo = lesson.video_url ? '🎬' : '';
-            const mediaBadge = (hasImage || hasVideo) ? `${hasImage} ${hasVideo}` : '-';
-
-            tr.innerHTML = `
-                <td style="padding: 12px 10px;">${lesson.id}</td>
-                <td style="padding: 12px 10px;"><strong>${lesson.title || 'ไม่มีหัวข้อ'}</strong></td>
-                <td style="padding: 12px 10px;"><span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 13px;">${lesson.category || '-'}</span></td>
-                <td style="padding: 12px 10px; text-align: center;">${mediaBadge}</td>
-                <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
-                    <button onclick="openEditModal(${lesson.id})" style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
-                        ✏️ แก้ไข
-                    </button>
-                    <button onclick="deleteLesson(${lesson.id})" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">
-                        🗑️ ลบ
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(tr);
-        });
-    } catch (err) {
-        console.error('Error loading admin lessons:', err);
-    }
-}
-
-async function deleteLesson(id) {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบทเรียนนี้?')) return;
-    try {
-        const response = await fetch(`/api/lessons/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-            alert('ลบบทเรียนเรียบร้อยแล้ว');
-            loadAdminLessons();
-        } else {
-            alert('เกิดข้อผิดพลาดในการลบ');
-        }
-    } catch (err) {
-        console.error('Error deleting lesson:', err);
-    }
-}
-// ==========================================
-// ✏️ ระบบแก้ไขบทเรียน (Edit Lesson Modal)
-// ==========================================
-
-// 1. ดึงข้อมูลบทเรียนมาใส่ใน Pop-up แก้ไข
-async function openEditModal(id) {
-    try {
-        const response = await fetch(`/api/lessons/${id}`);
-        const result = await response.json();
-        const lesson = result.data || result;
-
-        if (!lesson) {
-            alert('ไม่พบข้อมูลบทเรียน');
-            return;
-        }
-
-        // เอาข้อมูลไปหยอดใส่ Input ใน Modal แก้ไข
-        if (document.getElementById('editLessonId')) document.getElementById('editLessonId').value = lesson.id;
-        if (document.getElementById('editLessonTitle')) document.getElementById('editLessonTitle').value = lesson.title || '';
-        if (document.getElementById('editLessonCategory')) document.getElementById('editLessonCategory').value = lesson.category || '';
-        if (document.getElementById('editLessonSummary')) document.getElementById('editLessonSummary').value = lesson.summary || '';
-        if (document.getElementById('editLessonVideo')) document.getElementById('editLessonVideo').value = lesson.video_url || '';
-
-        // ถ้าหน้าแก้ไขมี Quill หรือ Textarea ให้ใส่เนื้อหาเดิมลงไป
-        if (editQuill) {
-    editQuill.root.innerHTML = lesson.content || '';
-}
-
-
-        // เปิดหน้าต่าง Pop-up Modal (เช็กตาม ID Modal ใน html ของคุณ)
-        const modal = document.getElementById('editModal') || document.getElementById('editLessonModal');
-        if (modal) {
-            modal.style.display = 'flex'; // หรือ 'block' ตามสไตล์ CSS หน้าเว็บคุณ
-        } else {
-            alert('เปิด Modal แก้ไขไม่ได้: ไม่พบ element ID #editModal ใน html');
-        }
-
-    } catch (err) {
-        console.error('Error fetching lesson details:', err);
-        alert('เกิดข้อผิดพลาดในการโหลดข้อมูลบทเรียน');
-    }
-}
-
-// 2. ฟังก์ชันปิด Pop-up Modal แก้ไข
-function closeEditModal() {
-    const modal = document.getElementById('editModal') || document.getElementById('editLessonModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-// ==========================================
-// 🗑️ ฟังก์ชันลบเอกสาร (Global Scope)
-// ==========================================
-window.deleteDoc = async function(id) {
-    console.log('Deleting doc ID:', id);
-
-    if (!id || id === 'undefined' || id === 'null') {
-        alert('ไม่พบ ID ของเอกสารในระบบ ไม่สามารถลบได้');
-        return;
-    }
-
-    if (!confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/documents/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            alert('ลบเอกสารเรียบร้อยแล้ว!');
-            if (typeof loadAdminDocuments === 'function') {
-                loadAdminDocuments();
-            } else {
-                location.reload();
-            }
-        } else {
-            const errData = await response.json().catch(() => ({}));
-            alert('ไม่สามารถลบเอกสารได้: ' + (errData.message || 'เกิดข้อผิดพลาดที่เซิร์ฟเวอร์'));
-        }
-    } catch (error) {
-        console.error('Error deleting document:', error);
-        alert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อลบข้อมูลได้');
-    }
-};
-
-// สำรองไว้กรณีเรียกผ่านชื่อ deleteDocument
-window.deleteDocument = window.deleteDoc;
