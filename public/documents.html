@@ -125,12 +125,25 @@
                     <input type="text" id="docSearchInput" placeholder="พิมพ์ชื่อเอกสาร เช่น ใบเสนอราคา, ระเบียบการเงิน..." 
                            style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun';">
                 </div>
-                <div style="flex: 1; min-width: 180px;">
-                    <label for="docYearFilter" style="font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">📅 กรองตามปีงบประมาณ:</label>
-                    <select id="docYearFilter" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; cursor: pointer;">
-                        <option value="all">-- ทุกปีงบประมาณ --</option>
-                    </select>
-                </div>
+                          <!-- 🟢 เพิ่มช่องกรองตามหมวดหมู่ตรงนี้ -->
+            <div style="flex: 1; min-width: 180px;">
+                <label for="docCategoryFilter" style="font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">📂 กรองตามหมวดหมู่:</label>
+                <select id="docCategoryFilter" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+                    <option value="all">-- ทุกหมวดหมู่ --</option>
+                    <option value="การเงิน">การเงิน</option>
+                    <option value="การคลัง">การคลัง</option>
+                    <option value="พัสดุ">พัสดุ</option>
+                    <option value="ทั่วไป">ทั่วไป</option>
+                    <option value="-">-</option>
+                </select>
+            </div>
+
+            <!-- ช่องกรองตามปีงบประมาณเดิม -->
+            <div style="flex: 1; min-width: 180px;">
+                <label for="docYearFilter" style="font-weight: bold; color: #475569; display: block; margin-bottom: 5px;">📅 กรองตามปีงบประมาณ:</label>
+                <select id="docYearFilter" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+                    <option value="all">-- ทุกปีงบประมาณ --</option>
+                </select>
             </div>
 
             <!-- 📄 ตารางแสดงผลเอกสาร -->
