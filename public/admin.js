@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: titleVal,
                     doc_title: titleVal,
                     name: titleVal,
-                    category: categoryInput ? categoryInput.value : 'ทั่วไป',
+                   category: categoryInput ? categoryInput.value : '-',
                     year: yearInput ? yearInput.value : '-',
                     fiscal_year: yearInput ? yearInput.value : '-',
                     file_url: cloudResult.secure_url,
