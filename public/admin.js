@@ -1,6 +1,9 @@
 // ==========================================
-// 🛠️ ADMIN.JS - ระบบจัดการหลังบ้าน
+// 🛠️ ADMIN.JS - เชื่อมต่อ Cloudinary ถาวร
 // ==========================================
+const CLOUDINARY_CLOUD_NAME = 'gibe8jv9';
+const CLOUDINARY_UPLOAD_PRESET = 'nzjzsfyr';
+
 let quill, editQuill;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAdminDocuments();
     loadAdminLessons();
 
+    // 1. ฟอร์มเพิ่มผู้ใช้งาน
     const addUserForm = document.getElementById('addUserForm');
     if (addUserForm) {
         addUserForm.addEventListener('submit', async (e) => {
@@ -41,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2. ฟอร์มอัปโหลดเอกสารไป Cloudinary (ถาวร 100%)
     const uploadDocForm = document.getElementById('uploadDocForm');
     if (uploadDocForm) {
         uploadDocForm.addEventListener('submit', async (e) => {
@@ -52,30 +57,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!fileInput || !fileInput.files[0]) return alert('กรุณาเลือกไฟล์เอกสารก่อนกดอัปโหลด');
 
-            const formData = new FormData();
-            const titleVal = titleInput ? titleInput.value.trim() : '';
-            formData.append('title', titleVal);
-            formData.append('doc_title', titleVal);
-            formData.append('name', titleVal);
-            formData.append('category', categoryInput ? categoryInput.value : 'ทั่วไป');
-            formData.append('year', yearInput ? yearInput.value : '-');
-            formData.append('fiscal_year', yearInput ? yearInput.value : '-');
-            formData.append('file', fileInput.files[0]);
+            const file = fileInput.files[0];
+            const titleVal = titleInput ? titleInput.value.trim() : file.name;
 
             try {
-                const res = await fetch('/api/documents', { method: 'POST', body: formData });
+                // ส่งไฟล์ไปเก็บที่ Cloudinary
+                const cloudData = new FormData();
+                cloudData.append('file', file);
+                cloudData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                    method: 'POST',
+                    body: cloudData
+                });
+
+                const cloudResult = await cloudRes.json();
+                if (!cloudRes.ok) {
+                    return alert('อัปโหลดไฟล์ไป Cloud Storage ไม่สำเร็จ: ' + (cloudResult.error?.message || ''));
+                }
+
+                // ส่ง URL ถาวรไปบันทึกลงระบบ
+                const docData = {
+                    title: titleVal,
+                    doc_title: titleVal,
+                    name: titleVal,
+                    category: categoryInput ? categoryInput.value : 'ทั่วไป',
+                    year: yearInput ? yearInput.value : '-',
+                    fiscal_year: yearInput ? yearInput.value : '-',
+                    file_url: cloudResult.secure_url,
+                    filename: file.name
+                };
+
+                const res = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(docData)
+                });
+
                 if (res.ok) {
-                    alert('อัปโหลดเอกสารเรียบร้อยแล้ว!');
+                    alert('อัปโหลดเอกสารขึ้น Cloud Storage ถาวรเรียบร้อยแล้ว!');
                     uploadDocForm.reset();
                     loadAdminDocuments();
-                } else {
-                    const errData = await res.json().catch(() => ({}));
-                    alert('เกิดข้อผิดพลาด: ' + (errData.message || 'อัปโหลดไม่สำเร็จ'));
-                }
-            } catch (err) { alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้'); }
+                } else alert('บันทึกข้อมูลเอกสารไม่สำเร็จ');
+
+            } catch (err) {
+                console.error('Upload Error:', err);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
+            }
         });
     }
 
+    // 3. บันทึกบทเรียน
     const btnSaveLesson = document.getElementById('btnSaveLesson');
     if (btnSaveLesson) {
         btnSaveLesson.addEventListener('click', async () => {
@@ -111,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 4. แก้ไขบทเรียน
     const editLessonForm = document.getElementById('editLessonForm');
     if (editLessonForm) {
         editLessonForm.addEventListener('submit', async (e) => {
@@ -144,6 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ==========================================
+// 👥 โหลดผู้ใช้งาน
+// ==========================================
 async function loadUsers() {
     const userTableBody = document.getElementById('userTableBody') || document.getElementById('adminUserTableBody');
     if (!userTableBody) return;
@@ -182,6 +218,9 @@ async function deleteUser(id) {
     } catch (err) { console.error('Error deleting user:', err); }
 }
 
+// ==========================================
+// 📄 โหลดและลบเอกสาร
+// ==========================================
 async function loadAdminDocuments() {
     try {
         const res = await fetch('/api/documents');
@@ -227,6 +266,9 @@ window.deleteDoc = async function(id) {
 };
 window.deleteDocument = window.deleteDoc;
 
+// ==========================================
+// 📚 โหลดและลบบทเรียน
+// ==========================================
 async function loadAdminLessons() {
     const tableBody = document.getElementById('adminLessonsTable') || document.getElementById('adminLessonTableBody') || document.getElementById('lessonTableBody');
     if (!tableBody) return;
