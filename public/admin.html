@@ -136,41 +136,64 @@
         <div id="tab-documents" class="tab-panel">
             <h2>📁 จัดการเอกสารดาวน์โหลด</h2>
             
-            <div class="card">
-                <h3>📤 อัปโหลดเอกสารใหม่</h3>
-                <form id="uploadDocForm">
-    <div>
-        <label>ชื่อเอกสาร / แบบฟอร์ม:</label>
-        <!-- ⚠️ สำคัญมาก: ต้องมี id="docTitle" และ name="title" -->
-        <input type="text" id="docTitle" name="title" placeholder="กรอกชื่อเอกสาร" required>
-    </div>
+           <!-- 📤 การ์ดอัปโหลดเอกสารใหม่แบบ UI ทันสมัย -->
+<div style="background: #ffffff; border-radius: 12px; padding: 24px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+    <h3 style="margin-top: 0; margin-bottom: 20px; color: #1e293b; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+        <span>📤</span> อัปโหลดเอกสารใหม่
+    </h3>
 
-    <div>
-        <label>หมวดหมู่:</label>
-        <select id="docCategory" name="category">
-    <option value="-" selected>-</option>
-    <option value="การเงิน">การเงิน</option>
-    <option value="การคลัง">การคลัง</option>
-    <option value="พัสดุ">พัสดุ</option>
-    <option value="ทั่วไป">ทั่วไป</option>
-</select>
-
-    </div>
-
-    <div>
-        <label>ปีงบประมาณ:</label>
-        <input type="text" id="docYear" name="year" placeholder="เช่น 2569">
-    </div>
-
-    <div>
-        <label>เลือกไฟล์เอกสาร (PDF, Word, Excel):</label>
-        <input type="file" id="docFile" name="file" required>
-    </div>
-
-    <button type="submit" class="btn btn-green">📤 อัปโหลดเอกสาร</button>
-</form>
-
+    <form id="uploadDocForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            
+            <!-- ชื่อเอกสาร / แบบฟอร์ม -->
+            <div style="grid-column: span 2;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 14px;">
+                    ชื่อเอกสาร / แบบฟอร์ม <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" id="docTitle" name="title" placeholder="กรอกชื่อเอกสาร เช่น ใบเบิกค่าใช้จ่าย, สัญญา..." required 
+                       style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; transition: border 0.2s;">
             </div>
+
+            <!-- หมวดหมู่ -->
+            <div>
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 14px;">หมวดหมู่</label>
+                <select id="docCategory" name="category" 
+                        style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background-color: #fff; box-sizing: border-box;">
+                    <option value="-" selected>-</option>
+                    <option value="การเงิน">การเงิน</option>
+                    <option value="การคลัง">การคลัง</option>
+                    <option value="พัสดุ">พัสดุ</option>
+                    <option value="ทั่วไป">ทั่วไป</option>
+                </select>
+            </div>
+
+            <!-- ปีงบประมาณ -->
+            <div>
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 14px;">ปีงบประมาณ</label>
+                <input type="text" id="docYear" name="year" placeholder="เช่น 2569" 
+                       style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            </div>
+
+            <!-- เลือกไฟล์เอกสาร -->
+            <div style="grid-column: 1 / -1;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 14px;">
+                    เลือกไฟล์เอกสาร (PDF, Word, Excel) <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="file" id="docFile" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx" required 
+                       style="width: 100%; padding: 8px; border: 1px dashed #94a3b8; border-radius: 8px; background: #f8fafc; font-size: 14px; cursor: pointer; box-sizing: border-box;">
+            </div>
+        </div>
+
+        <!-- ปุ่มอัปโหลด -->
+        <div style="text-align: right;">
+            <button type="submit" 
+                    style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(37,99,235,0.3); transition: all 0.2s;">
+                🚀 อัปโหลดเอกสาร
+            </button>
+        </div>
+    </form>
+</div>
+
 
             <div class="card">
                 <h3>📋 รายการเอกสารดาวน์โหลดทั้งหมด</h3>
