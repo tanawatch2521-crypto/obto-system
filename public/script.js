@@ -25,16 +25,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLessons();
     loadDocuments();
 
-    // ผูกระบบค้นหาเอกสาร
+       // ผูกระบบค้นหาเอกสาร
     const docSearchInput = document.getElementById('docSearchInput');
+    const docCategoryFilter = document.getElementById('docCategoryFilter'); // 👈 เพิ่มบรรทัดนี้
     const docYearFilter = document.getElementById('docYearFilter');
 
     if (docSearchInput) {
         docSearchInput.addEventListener('input', filterDocuments);
     }
+    if (docCategoryFilter) {                                                // 👈 เพิ่มบรรทัดนี้
+        docCategoryFilter.addEventListener('change', filterDocuments);       // 👈 เพิ่มบรรทัดนี้
+    }
     if (docYearFilter) {
         docYearFilter.addEventListener('change', filterDocuments);
     }
+
 });
 
 // ==========================================
@@ -164,9 +169,12 @@ async function loadDocuments() {
         
         renderDocumentTable(allDocuments);
         
-        if (typeof populateFiscalYearDropdown === 'function') {
-            populateFiscalYearDropdown(allDocuments);
-        }
+       if (typeof populateFiscalYearDropdown === 'function') {
+    populateFiscalYearDropdown(allDocuments);
+}
+if (typeof populateCategoryDropdown === 'function') {
+    populateCategoryDropdown(allDocuments);
+}
     } catch (err) {
         console.error('Error loading documents:', err);
         const tableBody = document.getElementById('documentTableBody');
@@ -234,22 +242,42 @@ function populateFiscalYearDropdown(docs) {
         yearSelect.appendChild(option);
     });
 }
+// ฟังก์ชันสร้างรายการหมวดหมู่ใน Dropdown อัตโนมัติจากข้อมูลจริง
+function populateCategoryDropdown(docs) {
+    const categorySelect = document.getElementById('docCategoryFilter');
+    if (!categorySelect) return;
 
+    const categories = [...new Set(docs.map(d => d.category || d.doc_category || '-').filter(Boolean))];
+    
+    categorySelect.innerHTML = '<option value="all">-- ทุกหมวดหมู่ --</option>';
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+    });
+}
+
+// ฟังก์ชันกรองเอกสารตาม คำค้นหา, หมวดหมู่, และปีงบประมาณ
 function filterDocuments() {
     const searchInput = document.getElementById('docSearchInput');
+    const categorySelect = document.getElementById('docCategoryFilter');
     const yearSelect = document.getElementById('docYearFilter');
 
     const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const selectedYear = yearSelect ? yearSelect.value : '';
+    const selectedCategory = categorySelect ? categorySelect.value : 'all';
+    const selectedYear = yearSelect ? yearSelect.value : 'all';
 
     const filteredDocs = allDocuments.filter(doc => {
-        const titleMatch = (doc.title || '').toLowerCase().includes(searchTerm);
-        const categoryMatch = (doc.category || '').toLowerCase().includes(searchTerm);
-        const matchesSearch = titleMatch || categoryMatch;
+        const title = (doc.title || doc.doc_title || doc.name || doc.filename || '').toLowerCase();
+        const category = (doc.category || doc.doc_category || '-').toLowerCase();
+        const docYear = String(doc.year || doc.fiscalYear || doc.fiscal_year || doc.doc_year || '');
 
-        const matchesYear = (selectedYear === 'all' || selectedYear === '') || String(doc.fiscal_year) === selectedYear;
+        const matchesSearch = !searchTerm || title.includes(searchTerm) || category.includes(searchTerm);
+        const matchesCategory = (selectedCategory === 'all' || selectedCategory === '') || category === selectedCategory.toLowerCase();
+        const matchesYear = (selectedYear === 'all' || selectedYear === '') || docYear === selectedYear;
 
-        return matchesSearch && matchesYear;
+        return matchesSearch && matchesCategory && matchesYear;
     });
 
     renderDocumentTable(filteredDocs);
