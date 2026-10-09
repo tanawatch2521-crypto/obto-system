@@ -15,7 +15,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 🟢 2. ตั้งค่า Multer (สร้าง upload ไว้ด้านบนสุด ก่อนใช้งานใน Route)
+// 🟢 2. ตั้งค่า Multer (สร้าง upload ไว้ใช้สำหรับบทเรียน)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -29,6 +29,7 @@ const upload = multer({ storage: storage });
 // 🟢 3. Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
@@ -60,27 +61,34 @@ db.serialize(() => {
         image_url TEXT,
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);        // 📌 บังคับเพิ่มคอลัมน์ image_url และ video_url ในตาราง lessons (กันฐานข้อมูลเก่าตกหล่น)
-        db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
-            if (err) console.log("Column image_url ready.");
-            else console.log("Added image_url column successfully!");
-        });
+    )`);
 
-        db.run("ALTER TABLE lessons ADD COLUMN video_url TEXT", (err) => {
-            if (err) console.log("Column video_url ready.");
-            else console.log("Added video_url column successfully!");
-        });
+    db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
+        if (err) console.log("Column image_url ready.");
+        else console.log("Added image_url column successfully!");
+    });
 
-    // ตาราง Documents
+    db.run("ALTER TABLE lessons ADD COLUMN video_url TEXT", (err) => {
+        if (err) console.log("Column video_url ready.");
+        else console.log("Added video_url column successfully!");
+    });
+
+    // ตาราง Documents (รองรับ file_url จาก Cloudinary)
     db.run(`CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         category TEXT,
         fiscal_year TEXT,
         file_path TEXT,
+        file_url TEXT,
         downloads INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    db.run("ALTER TABLE documents ADD COLUMN file_url TEXT", (err) => {
+        if (err) console.log("Column file_url ready.");
+        else console.log("Added file_url column successfully!");
+    });
 });
 
 // อัปเดตรหัสผ่าน admin เป็น admin1234
@@ -172,12 +180,11 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     const { title, category, summary, content, video_url } = req.body;
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
-    // 🟢 โค้ดใหม่ (ตัด views ออกแล้ว):
-const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
-db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
-});
+    const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
+    });
 });
 
 app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
@@ -208,40 +215,29 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents)
+// 📄 APIs: จัดการเอกสาร (Documents) - เชื่อมต่อ Cloudinary + SQLite
 // ==========================================
-app.post('/api/documents', async (req, res) => {
-    try {
-        const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
+app.post('/api/documents', (req, res) => {
+    const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
 
-        const newDoc = {
-            id: Date.now().toString(),
-            title: title || doc_title || name || 'ไม่มีชื่อเอกสาร',
-            category: category || 'ทั่วไป',
-            year: year || fiscal_year || '-',
-            file_url: file_url || '',
-            filename: filename || 'document'
-        };
+    const finalTitle = title || doc_title || name || filename || 'ไม่มีชื่อเอกสาร';
+    const finalCategory = category || 'ทั่วไป';
+    const finalYear = year || fiscal_year || '-';
+    const finalFileUrl = file_url || '';
 
-        // TODO: บันทึก newDoc ลงไฟล์ JSON หรือฐานข้อมูลของคุณ
-        // ตัวอย่างถ้าใช้ไฟล์ JSON/Array:
-        // documents.push(newDoc);
-        // await saveDocumentsToFile();
-
-        res.json({ message: 'บันทึกเอกสารเรียบร้อยแล้ว', data: newDoc });
-    } catch (err) {
-        console.error('Error saving document:', err);
-        res.status(500).json({ message: 'เกิดข้อผิดพลาดบนเซิร์ฟเวอร์' });
-    }
-});
-
-app.delete('/api/documents/:id', (req, res) => {
-    db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "ลบเอกสารสำเร็จ" });
+    const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
+    db.run(sql, [finalTitle, finalCategory, finalYear, finalFileUrl, finalFileUrl], function(err) {
+        if (err) {
+            console.error('Error inserting document:', err.message);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({
+            message: 'บันทึกเอกสารเรียบร้อยแล้ว',
+            data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
+        });
     });
 });
-// 🟢 API ดึงข้อมูลเอกสารทั้งหมด (สำหรับให้หน้าเว็บนำไปโชว์ในตาราง)
+
 app.get('/api/documents', (req, res) => {
     db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
         if (err) {
@@ -249,6 +245,13 @@ app.get('/api/documents', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.json(rows || []);
+    });
+});
+
+app.delete('/api/documents/:id', (req, res) => {
+    db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "ลบเอกสารสำเร็จ" });
     });
 });
 
