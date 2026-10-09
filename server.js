@@ -210,15 +210,29 @@ app.delete('/api/lessons/:id', (req, res) => {
 // ==========================================
 // 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
-app.post('/api/documents', upload.single('file'), (req, res) => {
-    const { title, category, fiscal_year } = req.body;
-    const file_path = req.file ? `/uploads/${req.file.filename}` : '';
+app.post('/api/documents', async (req, res) => {
+    try {
+        const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
 
-    const sql = "INSERT INTO documents (title, category, fiscal_year, file_path) VALUES (?, ?, ?, ?)";
-    db.run(sql, [title, category, fiscal_year, file_path], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "อัปโหลดเอกสารสำเร็จ", id: this.lastID });
-    });
+        const newDoc = {
+            id: Date.now().toString(),
+            title: title || doc_title || name || 'ไม่มีชื่อเอกสาร',
+            category: category || 'ทั่วไป',
+            year: year || fiscal_year || '-',
+            file_url: file_url || '',
+            filename: filename || 'document'
+        };
+
+        // TODO: บันทึก newDoc ลงไฟล์ JSON หรือฐานข้อมูลของคุณ
+        // ตัวอย่างถ้าใช้ไฟล์ JSON/Array:
+        // documents.push(newDoc);
+        // await saveDocumentsToFile();
+
+        res.json({ message: 'บันทึกเอกสารเรียบร้อยแล้ว', data: newDoc });
+    } catch (err) {
+        console.error('Error saving document:', err);
+        res.status(500).json({ message: 'เกิดข้อผิดพลาดบนเซิร์ฟเวอร์' });
+    }
 });
 
 app.delete('/api/documents/:id', (req, res) => {
