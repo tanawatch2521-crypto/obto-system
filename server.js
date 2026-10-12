@@ -1,5 +1,6 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -12,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // 🟢 กำหนดเส้นทางฐานข้อมูลที่ /tmp บน Render
 const dbFile = 'database.db';
@@ -30,7 +33,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 สร้างตารางและบังคับเพิ่มคอลัมน์ให้ครบถ้วนป้องกันเคสหาคอลัมน์ไม่พบ
+// 🟢 สร้างตารางและอัปเดตโครงสร้างคอลัมน์ให้ครบถ้วนทันที
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,13 +64,16 @@ db.serialize(() => {
         file_url TEXT,
         downloads INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`, () => {
+        // ตรวจสอบและเพิ่มคอลัมน์ file_url เผื่อตารางเก่าไม่มี
+        db.run(`ALTER TABLE documents ADD COLUMN file_url TEXT`, (err) => {});
+    });
 });
 
 // ==========================================
-// 📚 APIs: Lessons (ส่ง Error จริงกลับไปโชว์ที่หน้าเว็บ)
+// 📚 APIs: Lessons (รองรับ multer และ FormData)
 // ==========================================
-app.post('/api/lessons', (req, res) => {
+app.post('/api/lessons', upload.any(), (req, res) => {
     try {
         const title = req.body.title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body.category || '-';
@@ -80,19 +86,20 @@ app.post('/api/lessons', (req, res) => {
         db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
             if (err) {
                 console.error("Lesson Insert Error:", err.message);
-                return res.status(500).json({ error: err.message }); // ส่งข้อความพังกลับไปให้เห็นชัดๆ
+                return res.status(500).json({ error: err.message });
             }
             res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
         });
     } catch (e) {
+        console.error("Lesson Exception:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
 // ==========================================
-// 📄 APIs: Documents (ส่ง Error จริงกลับไปโชว์ที่หน้าเว็บ)
+// 📄 APIs: Documents (รองรับทั้ง JSON และ FormData)
 // ==========================================
-app.post('/api/documents', (req, res) => {
+app.post('/api/documents', upload.any(), (req, res) => {
     try {
         const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
         const category = req.body.category || '-';
@@ -103,16 +110,17 @@ app.post('/api/documents', (req, res) => {
         db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
             if (err) {
                 console.error('Document Insert Error:', err.message);
-                return res.status(500).json({ error: err.message }); // ส่งข้อความพังกลับไปให้เห็นชัดๆ
+                return res.status(500).json({ error: err.message });
             }
             res.json({ message: 'บันทึกเอกสารสำเร็จ', id: this.lastID });
         });
     } catch (e) {
+        console.error('Document Exception:', e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
-// APIs อื่นๆ
+// APIs พื้นฐานอื่นๆ
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
