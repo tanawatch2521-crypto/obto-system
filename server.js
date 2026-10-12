@@ -15,36 +15,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ใช้ Multer แบบ Memory Storage เพื่อความเสถียรสูงสุด
+// ใช้ Multer แบบ Memory Storage เพื่อความเสถียรสูงสุดบน Render
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 } 
 });
 
-// 🟢 2. ตั้งค่าฐานข้อมูลให้ใช้ /tmp บน Render เสมอเพื่อป้องกันข้อผิดพลาด Read-only
-const dbName = 'database.db';
-const localDbPath = path.join(__dirname, dbName);
-const tmpDir = '/tmp';
-let dbPath = localDbPath;
+// 🟢 2. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp บน Render
+const dbFile = 'database.db';
+let targetDbPath = path.join(__dirname, dbFile);
 
-if (fs.existsSync(tmpDir)) {
-    dbPath = path.join(tmpDir, dbName);
-    if (!fs.existsSync(dbPath) && fs.existsSync(localDbPath)) {
-        try {
-            fs.copyFileSync(localDbPath, dbPath);
-            console.log("Copied database to /tmp successfully.");
-        } catch (e) {
-            console.error("Failed to copy database to /tmp:", e.message);
+try {
+    if (fs.existsSync('/tmp')) {
+        targetDbPath = path.join('/tmp', dbFile);
+        if (!fs.existsSync(targetDbPath) && fs.existsSync(path.join(__dirname, dbFile))) {
+            fs.copyFileSync(path.join(__dirname, dbFile), targetDbPath);
         }
     }
+} catch (e) {
+    console.error("Path setup error:", e.message);
 }
 
-const db = new sqlite3.Database(dbPath, (err) => {
+const db = new sqlite3.Database(targetDbPath, (err) => {
     if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite Database at:', dbPath);
+    else console.log('Connected to SQLite Database at:', targetDbPath);
 });
 
-// 🟢 3. สร้างและตรวจสอบโครงสร้างตาราง
+// 🟢 3. สร้างโครงสร้างตารางให้ครบถ้วนทันทีที่เริ่มเซิร์ฟเวอร์
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,14 +50,16 @@ db.serialize(() => {
         fullname TEXT,
         role TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, () => {
-        db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
-            if (!row) {
-                const hashedPassword = await bcrypt.hash('admin1234', 10);
-                db.run("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, ?)", 
-                    ['admin', hashedPassword, 'ผู้ดูแลระบบหลัก', 'admin']);
-            }
-        });
+    )`, (err) => {
+        if (!err) {
+            db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
+                if (!row) {
+                    const hashedPassword = await bcrypt.hash('admin1234', 10);
+                    db.run("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, ?)", 
+                        ['admin', hashedPassword, 'ผู้ดูแลระบบหลัก', 'admin']);
+                }
+            });
+        }
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS lessons (
@@ -113,7 +112,7 @@ app.post('/api/users', async (req, res) => {
             }
         );
     } catch (err) {
-        res.status(500).json({ message: 'เกิดข้อผิดพลาดในระบบ' });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -215,61 +214,4 @@ app.put('/api/lessons/:id', upload.any(), (req, res) => {
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
-    db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: 'ลบบทเรียนสำเร็จ' });
-    });
-});
-
-// ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents)
-// ==========================================
-app.post('/api/documents', upload.any(), (req, res) => {
-    try {
-        const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
-        const category = req.body.category || '-';
-        const fiscal_year = req.body.fiscal_year || req.body.year || '-';
-        const file_url = req.body.file_url || '';
-
-        const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
-        db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
-            if (err) {
-                console.error('Error inserting document:', err.message);
-                return res.status(500).json({ error: err.message });
-            }
-            res.json({
-                message: 'บันทึกเอกสารเรียบร้อยแล้ว',
-                data: { id: this.lastID, title, category, fiscal_year, file_url }
-            });
-        });
-    } catch (e) {
-        console.error("Document catch error:", e.message);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.get('/api/documents', (req, res) => {
-    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows || []);
-    });
-});
-
-app.delete('/api/documents/:id', (req, res) => {
-    db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "ลบเอกสารสำเร็จ" });
-    });
-});
-
-app.post('/api/analytics/download-doc/:id', (req, res) => {
-    db.run("UPDATE documents SET downloads = downloads + 1 WHERE id = ?", [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "บันทึกการดาวน์โหลดแล้ว" });
-    });
-});
-
-// 🟢 4. เริ่มต้น Server
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+    db.run("DELETE FROM
