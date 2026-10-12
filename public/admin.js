@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. บันทึกบทเรียน
+       // 3. บันทึกบทเรียน (อัปโหลดรูปไป Cloudinary ก่อนส่งข้อมูล)
     const btnSaveLesson = document.getElementById('btnSaveLesson');
     if (btnSaveLesson) {
         btnSaveLesson.addEventListener('click', async () => {
@@ -121,27 +121,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!title) return alert('กรุณากรอกหัวข้อบทเรียน');
 
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('category', category);
-            formData.append('summary', summary);
-            formData.append('content', content);
-            formData.append('video_url', video_url);
-            if (imageFile) formData.append('image', imageFile);
-
             try {
-                const res = await fetch('/api/lessons', { method: 'POST', body: formData });
+                let imageUrl = '';
+                // ถ้ามีการเลือกรูปภาพ ให้ส่งไป Cloudinary ก่อน
+                if (imageFile) {
+                    const cloudData = new FormData();
+                    cloudData.append('file', imageFile);
+                    cloudData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                    const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+                        method: 'POST',
+                        body: cloudData
+                    });
+                    const cloudResult = await cloudRes.json();
+                    if (cloudRes.ok) {
+                        imageUrl = cloudResult.secure_url;
+                    } else {
+                        return alert('อัปโหลดรูปภาพไป Cloud Storage ไม่สำเร็จ');
+                    }
+                }
+
+                // ส่งข้อมูลบทเรียนรูปแบบ JSON ไปยังเซิร์ฟเวอร์
+                const lessonData = {
+                    title,
+                    category,
+                    summary,
+                    content,
+                    video_url,
+                    image_url: imageUrl
+                };
+
+                const res = await fetch('/api/lessons', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lessonData)
+                });
+
                 if (res.ok) {
                     alert('เพิ่มบทเรียนเรียบร้อยแล้ว!');
                     if (document.getElementById('lessonTitle')) document.getElementById('lessonTitle').value = '';
                     if (document.getElementById('lessonCategory')) document.getElementById('lessonCategory').value = '';
                     if (document.getElementById('lessonSummary')) document.getElementById('lessonSummary').value = '';
+                    if (document.getElementById('lessonVideo')) document.getElementById('lessonVideo').value = '';
+                    if (imageInput) imageInput.value = '';
                     if (quill) quill.setText('');
                     loadAdminLessons();
                 } else alert('เกิดข้อผิดพลาดในการบันทึกบทเรียน');
-            } catch (err) { alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์'); }
+            } catch (err) { 
+                console.error('Lesson Save Error:', err);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์'); 
+            }
         });
     }
+
 
     // 4. แก้ไขบทเรียน
     const editLessonForm = document.getElementById('editLessonForm');
