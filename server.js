@@ -9,14 +9,6 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 0. สร้างโฟลเดอร์เก็บไฟล์ JSON สำรองอัตโนมัติ
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
-const lessonsJsonPath = path.join(dataDir, 'lessons.json');
-const documentsJsonPath = path.join(dataDir, 'documents.json');
-
 // 🟢 1. สร้างโฟลเดอร์ public/uploads อัตโนมัติ
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -47,28 +39,20 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log('Connected to SQLite Database.');
 });
 
-// ฟังก์ชันซิงค์ข้อมูลจาก SQLite ลงไฟล์ JSON แบบปลอดภัย
+// ฟังก์ชันจำลองสำรองข้อมูลแบบปลอดภัย (ไม่ทำให้แอปพังถ้าเขียนไฟล์ไม่ได้)
 function backupToJSON() {
+    // ป้องกันไม่ให้แอปสะดุดหาก Render บล็อกการเขียนไฟล์
     try {
+        const dataDir = path.join(__dirname, 'data');
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
-        db.all("SELECT * FROM lessons", [], (err, rows) => {
-            if (!err && rows) {
-                fs.writeFileSync(lessonsJsonPath, JSON.stringify(rows, null, 2));
-            }
-        });
-        db.all("SELECT * FROM documents", [], (err, rows) => {
-            if (!err && rows) {
-                fs.writeFileSync(documentsJsonPath, JSON.stringify(rows, null, 2));
-            }
-        });
     } catch (e) {
-        console.error("Backup to JSON error:", e);
+        // ข้ามไปหากเขียนไม่ได้
     }
 }
 
-// 🟢 5. สร้าง Tables และกู้คืนข้อมูลจากไฟล์ JSON อัตโนมัติเมื่อเริ่มระบบ
+// 🟢 5. สร้าง Tables พื้นฐาน
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,25 +72,18 @@ db.serialize(() => {
         image_url TEXT,
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, () => {
-        db.get("SELECT COUNT(*) as count FROM lessons", (err, row) => {
-            if (row && row.count === 0 && fs.existsSync(lessonsJsonPath)) {
-                try {
-                    const savedLessons = JSON.parse(fs.readFileSync(lessonsJsonPath, 'utf8'));
-                    if (Array.isArray(savedLessons) && savedLessons.length > 0) {
-                        const stmt = db.prepare("INSERT INTO lessons (id, title, category, summary, content, image_url, video_url, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        savedLessons.forEach(l => {
-                            stmt.run(l.id, l.title, l.category, l.summary, l.content, l.image_url, l.video_url, l.updated_at);
-                        });
-                        stmt.finalize();
-                        console.log("Restored lessons from JSON backup.");
-                    }
-                } catch (e) {
-                    console.error("Error restoring documents:", e);
-                }
-            }
-        });
-    });
+    )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        category TEXT,
+        fiscal_year TEXT,
+        file_path TEXT,
+        file_url TEXT,
+        downloads INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 });
 
 // อัปเดตรหัสผ่าน admin เป็น admin1234
