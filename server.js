@@ -33,11 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database
-const dbPath = path.join(__dirname, 'database.db');
+// 🟢 4. เชื่อมต่อ SQLite Database (ใช้ /tmp บน Render เพื่อให้เขียนข้อมูลได้จริง)
+const dbPath = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'database.db') : path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite Database.');
+    else console.log('Connected to SQLite Database at:', dbPath);
 });
 
 // 🟢 5. สร้าง Tables ในฐานข้อมูล
