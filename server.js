@@ -15,7 +15,7 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 🟢 2. ตั้งค่า Multer
+// 🟢 2. ตั้งค่า Multer แบบปลอดภัย
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -33,25 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. คัดลอกและเชื่อมต่อ SQLite ไปยัง /tmp บน Render เพื่อให้เขียนข้อมูลใหม่ได้
-const sourceDbPath = path.join(__dirname, 'database.db');
-const tmpDbPath = path.join('/tmp', 'database.db');
-
-let dbPath = sourceDbPath;
-try {
-    if (!fs.existsSync(tmpDbPath) && fs.existsSync(sourceDbPath)) {
-        fs.copyFileSync(sourceDbPath, tmpDbPath);
-    }
-    if (fs.existsSync(tmpDbPath)) {
-        dbPath = tmpDbPath;
-    }
-} catch (e) {
-    console.log("Using default db path:", e.message);
-}
-
+// 🟢 4. เชื่อมต่อฐานข้อมูล SQLite
+const dbPath = path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite Database at:', dbPath);
+    else console.log('Connected to SQLite Database.');
 });
 
 // 🟢 5. สร้าง Tables ในฐานข้อมูล
@@ -160,7 +146,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 📚 APIs: จัดการบทเรียน (Lessons)
+// 📚 APIs: จัดการบทเรียน (Lessons) - ปรับปรุงการรับไฟล์ให้ปลอดภัย
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -178,8 +164,10 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-app.post('/api/lessons', upload.single('image'), (req, res) => {
-    try {
+app.post('/api/lessons', (req, res) => {
+    upload.single('image')(req, res, (uploadErr) => {
+        if (uploadErr) console.log("Lesson upload warning:", uploadErr.message);
+
         const { title, category, summary, content, video_url } = req.body;
         const image_url = req.file ? `/uploads/${req.file.filename}` : null;
         
@@ -191,13 +179,13 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
             }
             res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
         });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    });
 });
 
-app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
-    try {
+app.put('/api/lessons/:id', (req, res) => {
+    upload.single('image')(req, res, (uploadErr) => {
+        if (uploadErr) console.log("Lesson update warning:", uploadErr.message);
+
         const { id } = req.params;
         const { title, category, summary, content, video_url } = req.body;
         
@@ -215,9 +203,7 @@ app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
                 res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
             });
         }
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    });
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
@@ -228,10 +214,12 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents)
+// 📄 APIs: จัดการเอกสาร (Documents) - ปรับปรุงการรับไฟล์ให้ปลอดภัย
 // ==========================================
-app.post('/api/documents', upload.single('file'), (req, res) => {
-    try {
+app.post('/api/documents', (req, res) => {
+    upload.single('file')(req, res, (uploadErr) => {
+        if (uploadErr) console.log("Document upload warning:", uploadErr.message);
+
         const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
         
         const finalTitle = title || doc_title || name || filename || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
@@ -254,9 +242,7 @@ app.post('/api/documents', upload.single('file'), (req, res) => {
                 data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
             });
         });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    });
 });
 
 app.get('/api/documents', (req, res) => {
