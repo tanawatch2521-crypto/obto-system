@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// 🟢 เชื่อมต่อกับ Supabase PostgreSQL
+// 🟢 เชื่อมต่อ Supabase ผ่าน PostgreSQL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -20,7 +20,7 @@ const pool = new Pool({
 
 pool.connect((err, client, release) => {
     if (err) {
-        console.error('Database Connection Error:', err.stack);
+        console.error('Supabase Connection Error:', err.stack);
     } else {
         console.log('Connected to Supabase PostgreSQL successfully!');
         release();
@@ -60,7 +60,7 @@ const initDB = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        console.log('Database tables verified/created successfully.');
+        console.log('Database tables verified on Supabase.');
     } catch (err) {
         console.error('Table Creation Error:', err.message);
     }
@@ -79,51 +79,13 @@ app.get('/api/lessons', async (req, res) => {
     }
 });
 
-app.get('/api/lessons/:id', async (req, res) => {
-    try {
-        const result = await pool.query("SELECT * FROM lessons WHERE id = $1", [req.params.id]);
-        if (result.rows.length === 0) return res.status(404).json({ error: "ไม่พบบทเรียน" });
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 app.post('/api/lessons', async (req, res) => {
     try {
         const { title, category, summary, content, image_url, video_url } = req.body;
         const query = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`;
-        const values = [
-            title || 'ไม่มีชื่อหัวข้อ',
-            category || '-',
-            summary || '',
-            content || '',
-            image_url || null,
-            video_url || ''
-        ];
+        const values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', image_url || null, video_url || ''];
         const result = await pool.query(query, values);
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: result.rows[0].id });
-    } catch (err) {
-        console.error("Lesson Insert Error:", err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.put('/api/lessons/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { title, category, summary, content, video_url, image_url } = req.body;
-
-        let query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
-        let values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', id];
-
-        if (image_url) {
-            query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`;
-            values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', image_url, id];
-        }
-
-        await pool.query(query, values);
-        res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -161,7 +123,6 @@ app.post('/api/documents', async (req, res) => {
         const result = await pool.query(query, [title, category, fiscal_year, file_url, file_url]);
         res.json({ message: 'บันทึกเอกสารสำเร็จ', id: result.rows[0].id });
     } catch (err) {
-        console.error('Document Insert Error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -175,11 +136,42 @@ app.delete('/api/documents/:id', async (req, res) => {
     }
 });
 
-// Users & Login
+// ==========================================
+// 👤 APIs: Users & Login
+// ==========================================
 app.get('/api/users', async (req, res) => {
     try {
         const result = await pool.query("SELECT id, username, fullname, role FROM users");
         res.json({ data: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 🟢 เพิ่มฟังก์ชันรองรับการสร้างผู้ใช้งานใหม่ (แก้ปัญหา 404)
+app.post('/api/users', async (req, res) => {
+    try {
+        const { username, password, fullname, role } = req.body;
+        if (!username || !password) {
+            return res.status(400).json({ message: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const query = `INSERT INTO users (username, password, fullname, role) VALUES ($1, $2, $3, $4) RETURNING id`;
+        const values = [username, hashedPassword, fullname || username, role || 'เจ้าหน้าที่ทั่วไป'];
+        
+        const result = await pool.query(query, values);
+        res.json({ message: 'เพิ่มผู้ใช้งานสำเร็จ', id: result.rows[0].id });
+    } catch (err) {
+        console.error('User Insert Error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        await pool.query("DELETE FROM users WHERE id = $1", [req.params.id]);
+        res.json({ message: 'ลบผู้ใช้สำเร็จ' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
