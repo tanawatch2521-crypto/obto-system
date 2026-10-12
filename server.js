@@ -9,13 +9,17 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. สร้างโฟลเดอร์เก็บไฟล์อัปโหลด
-const uploadDir = path.join(__dirname, 'public', 'uploads');
+// 🟢 1. ใช้โฟลเดอร์ /tmp/uploads บน Render เพื่อให้มีสิทธิ์เขียนไฟล์ได้จริง
+const uploadDir = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'uploads') : path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+    try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (e) {
+        console.error("Error creating upload dir:", e.message);
+    }
 }
 
-// 🟢 2. ตั้งค่า Multer (รองรับทั้งไฟล์และป้องกันการหลุดของฟอร์ม)
+// 🟢 2. ตั้งค่า Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -26,7 +30,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 50 * 1024 * 1024 } // รองรับไฟล์ขนาดใหญ่สุด 50MB
+    limits: { fileSize: 50 * 1024 * 1024 } 
 });
 
 // 🟢 3. Middlewares
@@ -36,11 +40,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database (ใช้ /tmp บน Render เพื่อให้เขียนข้อมูลได้จริง)
+// 🟢 4. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp
 const tmpDbPath = path.join('/tmp', 'database.db');
 const dbPath = process.env.NODE_ENV === 'production' ? tmpDbPath : path.join(__dirname, 'database.db');
 
-// ถ้ายังไม่มีฐานข้อมูลใน /tmp ให้ลองคัดลอกจากต้นฉบับ (ถ้ามี)
 if (!fs.existsSync(dbPath) && fs.existsSync(path.join(__dirname, 'database.db'))) {
     try {
         fs.copyFileSync(path.join(__dirname, 'database.db'), dbPath);
@@ -52,7 +55,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('Connected to SQLite Database at:', dbPath);
 });
 
-// 🟢 5. สร้างโครงสร้างตารางให้สมบูรณ์พร้อมรองรับทุกฟิลด์
+// 🟢 5. สร้างโครงสร้างตาราง
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +157,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 📚 APIs: จัดการบทเรียน (Lessons) - ป้องกัน Error 500 100%
+// 📚 APIs: จัดการบทเรียน (Lessons)
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -173,6 +176,7 @@ app.get('/api/lessons/:id', (req, res) => {
 
 app.post('/api/lessons', (req, res) => {
     upload.single('image')(req, res, (uploadErr) => {
+        if (uploadErr) console.error("Upload error:", uploadErr.message);
         try {
             const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
             const category = req.body.category || '-';
@@ -233,10 +237,11 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents) - ป้องกัน Error 500 100%
+// 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
 app.post('/api/documents', (req, res) => {
     upload.single('file')(req, res, (uploadErr) => {
+        if (uploadErr) console.error("Upload error:", uploadErr.message);
         try {
             const title = req.body.title || req.body.doc_title || req.body.name || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
             const category = req.body.category || '-';
