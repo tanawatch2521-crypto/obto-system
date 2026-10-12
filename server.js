@@ -96,7 +96,7 @@ db.serialize(() => {
 })();
 
 // ==========================================
-// 👥 APIs: จัดการผู้ใช้งาน (Users) - แก้ไขให้ส่งข้อมูลครบถ้วน
+// 👥 APIs: จัดการผู้ใช้งาน (Users)
 // ==========================================
 app.post('/api/users', async (req, res) => {
     const { username, password, fullname, role } = req.body;
@@ -263,7 +263,7 @@ app.delete('/api/documents/:id', (req, res) => {
     });
 });
 
-app.post('/api/analytics/download-doc/:id`, (req, res) => {
+app.post('/api/analytics/download-doc/:id', (req, res) => {
     db.run("UPDATE documents SET downloads = downloads + 1 WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "บันทึกการดาวน์โหลดแล้ว" });
