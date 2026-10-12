@@ -33,11 +33,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database
-const dbPath = path.join(__dirname, 'database.db');
+// 🟢 4. คัดลอกและเชื่อมต่อ SQLite ไปยัง /tmp บน Render เพื่อให้เขียนข้อมูลใหม่ได้
+const sourceDbPath = path.join(__dirname, 'database.db');
+const tmpDbPath = path.join('/tmp', 'database.db');
+
+let dbPath = sourceDbPath;
+try {
+    if (!fs.existsSync(tmpDbPath) && fs.existsSync(sourceDbPath)) {
+        fs.copyFileSync(sourceDbPath, tmpDbPath);
+    }
+    if (fs.existsSync(tmpDbPath)) {
+        dbPath = tmpDbPath;
+    }
+} catch (e) {
+    console.log("Using default db path:", e.message);
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite Database.');
+    else console.log('Connected to SQLite Database at:', dbPath);
 });
 
 // 🟢 5. สร้าง Tables ในฐานข้อมูล
@@ -50,7 +64,6 @@ db.serialize(() => {
         role TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
-        // ตรวจสอบและสร้างบัญชี admin เริ่มต้นถ้ายังไม่มี
         db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
             if (!row) {
                 const hashedPassword = await bcrypt.hash('admin1234', 10);
