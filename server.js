@@ -195,29 +195,35 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents)
+// 📄 APIs: จัดการเอกสาร (Documents) - ปรับปรุงให้รองรับการอัปโหลดแบบยืดหยุ่น
 // ==========================================
-app.post('/api/documents', upload.single('file'), (req, res) => {
-    const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
-    
-    const finalTitle = title || doc_title || name || filename || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
-    const finalCategory = category || '-';
-    const finalYear = year || fiscal_year || '-';
-    
-    let finalFileUrl = file_url || '';
-    if (req.file) {
-        finalFileUrl = `/uploads/${req.file.filename}`;
-    }
-
-    const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
-    db.run(sql, [finalTitle, finalCategory, finalYear, finalFileUrl, finalFileUrl], function(err) {
-        if (err) {
-            console.error('Error inserting document:', err.message);
-            return res.status(500).json({ error: err.message });
+app.post('/api/documents', (req, res) => {
+    upload.single('file')(req, res, (uploadErr) => {
+        if (uploadErr) {
+            console.log("Upload middleware note:", uploadErr.message);
         }
-        res.json({
-            message: 'บันทึกเอกสารเรียบร้อยแล้ว',
-            data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
+
+        const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
+        
+        const finalTitle = title || doc_title || name || filename || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
+        const finalCategory = category || '-';
+        const finalYear = year || fiscal_year || '-';
+        
+        let finalFileUrl = file_url || '';
+        if (req.file) {
+            finalFileUrl = `/uploads/${req.file.filename}`;
+        }
+
+        const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
+        db.run(sql, [finalTitle, finalCategory, finalYear, finalFileUrl, finalFileUrl], function(err) {
+            if (err) {
+                console.error('Error inserting document:', err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({
+                message: 'บันทึกเอกสารเรียบร้อยแล้ว',
+                data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
+            });
         });
     });
 });
