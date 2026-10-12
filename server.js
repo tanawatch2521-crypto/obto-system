@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ตั้งค่า Multer แบบจำกัดความจำ (Memory Storage) ป้องกันปัญหา Disk Full / Read-only บน Render
+// ใช้ Multer แบบ Memory Storage เพื่อความเสถียรบน Render
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 } 
@@ -36,7 +36,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('Connected to SQLite Database at:', dbPath);
 });
 
-// 🟢 3. สร้างโครงสร้างตาราง
+// 🟢 3. สร้างโครงสร้างตารางให้ครบถ้วนทุกคอลัมน์
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,7 +138,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 📚 APIs: จัดการบทเรียน (Lessons) - ปลอดภัย 100% ไม่ติด Error 500
+// 📚 APIs: จัดการบทเรียน (Lessons)
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -155,7 +155,7 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-app.post('/api/lessons', upload.single('image'), (req, res) => {
+app.post('/api/lessons', upload.any(), (req, res) => {
     try {
         const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body.category || '-';
@@ -173,11 +173,12 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
             res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
         });
     } catch (e) {
+        console.error("Lesson catch error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
 
-app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
+app.put('/api/lessons/:id', upload.any(), (req, res) => {
     try {
         const { id } = req.params;
         const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
@@ -213,9 +214,9 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents) - ปลอดภัย 100% ไม่ติด Error 500
+// 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
-app.post('/api/documents', upload.single('file'), (req, res) => {
+app.post('/api/documents', upload.any(), (req, res) => {
     try {
         const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
         const category = req.body.category || '-';
@@ -234,6 +235,7 @@ app.post('/api/documents', upload.single('file'), (req, res) => {
             });
         });
     } catch (e) {
+        console.error("Document catch error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
