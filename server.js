@@ -9,13 +9,21 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. สร้างโฟลเดอร์ public/uploads อัตโนมัติ (ป้องกัน Error หาโฟลเดอร์ไม่เจอ)
+// 🟢 0. สร้างโฟลเดอร์เก็บไฟล์ JSON สำรองอัตโนมัติ
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+const lessonsJsonPath = path.join(dataDir, 'lessons.json');
+const documentsJsonPath = path.join(dataDir, 'documents.json');
+
+// 🟢 1. สร้างโฟลเดอร์ public/uploads อัตโนมัติ
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// 🟢 2. ตั้งค่า Multer (สร้าง upload ไว้ใช้สำหรับบทเรียน)
+// 🟢 2. ตั้งค่า Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -39,9 +47,22 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log('Connected to SQLite Database.');
 });
 
-// 🟢 5. สร้าง Tables ในฐานข้อมูล
+// ฟังก์ชันซิงค์ข้อมูลจาก SQLite ลงไฟล์ JSON
+function backupToJSON() {
+    db.all("SELECT * FROM lessons", [], (err, rows) => {
+        if (!err && rows) {
+            fs.writeFileSync(lessonsJsonPath, JSON.stringify(rows, null, 2));
+        }
+    });
+    db.all("SELECT * FROM documents", [], (err, rows) => {
+        if (!err && rows) {
+            fs.writeFileSync(documentsJsonPath, JSON.stringify(rows, null, 2));
+        }
+    });
+}
+
+// 🟢 5. สร้าง Tables และกู้คืนข้อมูลจากไฟล์ JSON อัตโนมัติเมื่อเริ่มระบบ
 db.serialize(() => {
-    // ตาราง Users
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -51,7 +72,6 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // ตาราง Lessons
     db.run(`CREATE TABLE IF NOT EXISTS lessons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
@@ -61,19 +81,27 @@ db.serialize(() => {
         image_url TEXT,
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    db.run("ALTER TABLE lessons ADD COLUMN image_url TEXT", (err) => {
-        if (err) console.log("Column image_url ready.");
-        else console.log("Added image_url column successfully!");
+    )`, () => {
+        // ถ้าระบบรีสตาร์ตแล้วข้อมูลใน DB หาย ให้ดึงจาก lessons.json กลับมาใส่
+        db.get("SELECT COUNT(*) as count FROM lessons", (err, row) => {
+            if (row && row.count === 0 && fs.existsSync(lessonsJsonPath)) {
+                try {
+                    const savedLessons = JSON.parse(fs.readFileSync(lessonsJsonPath, 'utf8'));
+                    if (Array.isArray(savedLessons) && savedLessons.length > 0) {
+                        const stmt = db.prepare("INSERT INTO lessons (id, title, category, summary, content, image_url, video_url, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        savedLessons.forEach(l => {
+                            stmt.run(l.id, l.title, l.category, l.summary, l.content, l.image_url, l.video_url, l.updated_at);
+                        });
+                        stmt.finalize();
+                        console.log("Restored lessons from JSON backup.");
+                    }
+                } catch (e) {
+                    console.error("Error restoring lessons:", e);
+                }
+            }
+        });
     });
 
-    db.run("ALTER TABLE lessons ADD COLUMN video_url TEXT", (err) => {
-        if (err) console.log("Column video_url ready.");
-        else console.log("Added video_url column successfully!");
-    });
-
-    // ตาราง Documents (รองรับ file_url จาก Cloudinary)
     db.run(`CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -83,11 +111,25 @@ db.serialize(() => {
         file_url TEXT,
         downloads INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    db.run("ALTER TABLE documents ADD COLUMN file_url TEXT", (err) => {
-        if (err) console.log("Column file_url ready.");
-        else console.log("Added file_url column successfully!");
+    )`, () => {
+        // ถ้าระบบรีสตาร์ตแล้วข้อมูลใน DB หาย ให้ดึงจาก documents.json กลับมาใส่
+        db.get("SELECT COUNT(*) as count FROM documents", (err, row) => {
+            if (row && row.count === 0 && fs.existsSync(documentsJsonPath)) {
+                try {
+                    const savedDocs = JSON.parse(fs.readFileSync(documentsJsonPath, 'utf8'));
+                    if (Array.isArray(savedDocs) && savedDocs.length > 0) {
+                        const stmt = db.prepare("INSERT INTO documents (id, title, category, fiscal_year, file_path, file_url, downloads, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        savedDocs.forEach(d => {
+                            stmt.run(d.id, d.title, d.category, d.fiscal_year, d.file_path, d.file_url, d.downloads || 0, d.created_at);
+                        });
+                        stmt.finalize();
+                        console.log("Restored documents from JSON backup.");
+                    }
+                } catch (e) {
+                    console.error("Error restoring documents:", e);
+                }
+            }
+        });
     });
 });
 
@@ -97,7 +139,6 @@ db.serialize(() => {
         const hash = await bcrypt.hash('admin1234', 10);
         db.run("UPDATE users SET password = ? WHERE username = 'admin'", [hash], (err) => {
             if (err) console.error("Error updating admin password:", err.message);
-            else console.log("Admin password updated successfully to admin1234");
         });
     } catch (err) {
         console.error("Error hashing password:", err);
@@ -149,10 +190,8 @@ app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
         if (err || !user) return res.status(400).json({ message: 'ไม่พบ Username นี้ในระบบ' });
-        
         const validPass = await bcrypt.compare(password, user.password);
         if (!validPass) return res.status(400).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
-
         res.json({ message: 'เข้าสู่ระบบสำเร็จ', user: { id: user.id, username: user.username, fullname: user.fullname } });
     });
 });
@@ -179,10 +218,10 @@ app.get('/api/lessons/:id', (req, res) => {
 app.post('/api/lessons', upload.single('image'), (req, res) => {
     const { title, category, summary, content, video_url } = req.body;
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
-
     const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
     db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
         if (err) return res.status(500).json({ error: err.message });
+        backupToJSON(); // สำรองข้อมูลลง JSON ทันที
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
     });
 });
@@ -190,18 +229,19 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
 app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
     const { id } = req.params;
     const { title, category, summary, content, video_url } = req.body;
-
     if (req.file) {
         const image_url = `/uploads/${req.file.filename}`;
         const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
         db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
             if (err) return res.status(500).json({ error: err.message });
+            backupToJSON();
             res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
         });
     } else {
         const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
         db.run(sql, [title, category, summary, content, video_url, id], function(err) {
             if (err) return res.status(500).json({ error: err.message });
+            backupToJSON();
             res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
         });
     }
@@ -210,16 +250,16 @@ app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
 app.delete('/api/lessons/:id', (req, res) => {
     db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
+        backupToJSON();
         res.json({ message: 'ลบบทเรียนสำเร็จ', changes: this.changes });
     });
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents) - เชื่อมต่อ Cloudinary + SQLite
+// 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
 app.post('/api/documents', (req, res) => {
     const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
-
     const finalTitle = title || doc_title || name || filename || 'ไม่มีชื่อเอกสาร';
     const finalCategory = category || 'ทั่วไป';
     const finalYear = year || fiscal_year || '-';
@@ -231,6 +271,7 @@ app.post('/api/documents', (req, res) => {
             console.error('Error inserting document:', err.message);
             return res.status(500).json({ error: err.message });
         }
+        backupToJSON(); // สำรองข้อมูลลง JSON ทันที
         res.json({
             message: 'บันทึกเอกสารเรียบร้อยแล้ว',
             data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
@@ -251,6 +292,7 @@ app.get('/api/documents', (req, res) => {
 app.delete('/api/documents/:id', (req, res) => {
     db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
+        backupToJSON();
         res.json({ message: "ลบเอกสารสำเร็จ" });
     });
 });
