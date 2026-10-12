@@ -214,4 +214,61 @@ app.put('/api/lessons/:id', upload.any(), (req, res) => {
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
-    db.run("DELETE FROM
+    db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'ลบบทเรียนสำเร็จ' });
+    });
+});
+
+// ==========================================
+// 📄 APIs: จัดการเอกสาร (Documents)
+// ==========================================
+app.post('/api/documents', upload.any(), (req, res) => {
+    try {
+        const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
+        const category = req.body.category || '-';
+        const fiscal_year = req.body.fiscal_year || req.body.year || '-';
+        const file_url = req.body.file_url || '';
+
+        const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
+        db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
+            if (err) {
+                console.error('Error inserting document:', err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({
+                message: 'บันทึกเอกสารเรียบร้อยแล้ว',
+                data: { id: this.lastID, title, category, fiscal_year, file_url }
+            });
+        });
+    } catch (e) {
+        console.error("Document catch error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/documents', (req, res) => {
+    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
+});
+
+app.delete('/api/documents/:id', (req, res) => {
+    db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "ลบเอกสารสำเร็จ" });
+    });
+});
+
+app.post('/api/analytics/download-doc/:id', (req, res) => {
+    db.run("UPDATE documents SET downloads = downloads + 1 WHERE id = ?", [req.params.id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "บันทึกการดาวน์โหลดแล้ว" });
+    });
+});
+
+// 🟢 4. เริ่มต้น Server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
