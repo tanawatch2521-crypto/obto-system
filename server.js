@@ -33,11 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database (ใช้ /tmp บน Render เพื่อให้เขียนข้อมูลได้จริง)
-const dbPath = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'database.db') : path.join(__dirname, 'database.db');
+// 🟢 4. เชื่อมต่อ SQLite Database
+const dbPath = path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Database connection error:', err.message);
-    else console.log('Connected to SQLite Database at:', dbPath);
+    else console.log('Connected to SQLite Database.');
 });
 
 // 🟢 5. สร้าง Tables ในฐานข้อมูล
@@ -49,7 +49,16 @@ db.serialize(() => {
         fullname TEXT,
         role TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`, () => {
+        // ตรวจสอบและสร้างบัญชี admin เริ่มต้นถ้ายังไม่มี
+        db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
+            if (!row) {
+                const hashedPassword = await bcrypt.hash('admin1234', 10);
+                db.run("INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, ?)", 
+                    ['admin', hashedPassword, 'ผู้ดูแลระบบหลัก', 'admin']);
+            }
+        });
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS lessons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,7 +83,7 @@ db.serialize(() => {
     )`);
 });
 
-// อัปเดตรหัสผ่าน admin เป็น admin1234
+// อัปเดตรหัสผ่าน admin เป็น admin1234 เสมอ
 (async () => {
     try {
         const hash = await bcrypt.hash('admin1234', 10);
@@ -87,7 +96,7 @@ db.serialize(() => {
 })();
 
 // ==========================================
-// 👥 APIs: จัดการผู้ใช้งาน (Users)
+// 👥 APIs: จัดการผู้ใช้งาน (Users) - แก้ไขให้ส่งข้อมูลครบถ้วน
 // ==========================================
 app.post('/api/users', async (req, res) => {
     const { username, password, fullname, role } = req.body;
@@ -98,7 +107,7 @@ app.post('/api/users', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         db.run(
             "INSERT INTO users (username, password, fullname, role) VALUES (?, ?, ?, ?)",
-            [username, hashedPassword, fullname || 'เจ้าหน้าที่ อบต.', role || 'admin'],
+            [username, hashedPassword, fullname || 'เจ้าหน้าที่ อบต.', role || 'เจ้าหน้าที่ทั่วไป'],
             function (err) {
                 if (err) return res.status(400).json({ message: 'Username นี้มีผู้ใช้งานในระบบแล้ว' });
                 res.json({ message: 'เพิ่มบัญชีผู้ใช้งานสำเร็จ!' });
@@ -110,7 +119,7 @@ app.post('/api/users', async (req, res) => {
 });
 
 app.get('/api/users', (req, res) => {
-    db.all("SELECT id, username, fullname FROM users", [], (err, rows) => {
+    db.all("SELECT id, username, fullname, role FROM users", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ data: rows });
     });
@@ -118,7 +127,7 @@ app.get('/api/users', (req, res) => {
 
 app.delete('/api/users/:id', (req, res) => {
     const userId = req.params.id;
-    if (userId === '1') {
+    if (userId === '1' || userId === 1) {
         return res.status(403).json({ error: 'ไม่สามารถลบบัญชี Admin หลักของระบบได้' });
     }
     db.run("DELETE FROM users WHERE id = ?", [userId], function (err) {
@@ -170,7 +179,6 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
             res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
         });
     } catch (e) {
-        console.error("Lesson catch error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
@@ -234,7 +242,6 @@ app.post('/api/documents', upload.single('file'), (req, res) => {
             });
         });
     } catch (e) {
-        console.error("Document catch error:", e.message);
         res.status(500).json({ error: e.message });
     }
 });
@@ -256,7 +263,7 @@ app.delete('/api/documents/:id', (req, res) => {
     });
 });
 
-app.post('/api/analytics/download-doc/:id', (req, res) => {
+app.post('/api/analytics/download-doc/:id`, (req, res) => {
     db.run("UPDATE documents SET downloads = downloads + 1 WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "บันทึกการดาวน์โหลดแล้ว" });
