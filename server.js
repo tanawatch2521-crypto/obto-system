@@ -47,18 +47,25 @@ const db = new sqlite3.Database('./database.db', (err) => {
     else console.log('Connected to SQLite Database.');
 });
 
-// ฟังก์ชันซิงค์ข้อมูลจาก SQLite ลงไฟล์ JSON
+// ฟังก์ชันซิงค์ข้อมูลจาก SQLite ลงไฟล์ JSON แบบปลอดภัย
 function backupToJSON() {
-    db.all("SELECT * FROM lessons", [], (err, rows) => {
-        if (!err && rows) {
-            fs.writeFileSync(lessonsJsonPath, JSON.stringify(rows, null, 2));
+    try {
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
         }
-    });
-    db.all("SELECT * FROM documents", [], (err, rows) => {
-        if (!err && rows) {
-            fs.writeFileSync(documentsJsonPath, JSON.stringify(rows, null, 2));
-        }
-    });
+        db.all("SELECT * FROM lessons", [], (err, rows) => {
+            if (!err && rows) {
+                fs.writeFileSync(lessonsJsonPath, JSON.stringify(rows, null, 2));
+            }
+        });
+        db.all("SELECT * FROM documents", [], (err, rows) => {
+            if (!err && rows) {
+                fs.writeFileSync(documentsJsonPath, JSON.stringify(rows, null, 2));
+            }
+        });
+    } catch (e) {
+        console.error("Backup to JSON error:", e);
+    }
 }
 
 // 🟢 5. สร้าง Tables และกู้คืนข้อมูลจากไฟล์ JSON อัตโนมัติเมื่อเริ่มระบบ
@@ -82,7 +89,6 @@ db.serialize(() => {
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
-        // ถ้าระบบรีสตาร์ตแล้วข้อมูลใน DB หาย ให้ดึงจาก lessons.json กลับมาใส่
         db.get("SELECT COUNT(*) as count FROM lessons", (err, row) => {
             if (row && row.count === 0 && fs.existsSync(lessonsJsonPath)) {
                 try {
@@ -94,36 +100,6 @@ db.serialize(() => {
                         });
                         stmt.finalize();
                         console.log("Restored lessons from JSON backup.");
-                    }
-                } catch (e) {
-                    console.error("Error restoring lessons:", e);
-                }
-            }
-        });
-    });
-
-    db.run(`CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        category TEXT,
-        fiscal_year TEXT,
-        file_path TEXT,
-        file_url TEXT,
-        downloads INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, () => {
-        // ถ้าระบบรีสตาร์ตแล้วข้อมูลใน DB หาย ให้ดึงจาก documents.json กลับมาใส่
-        db.get("SELECT COUNT(*) as count FROM documents", (err, row) => {
-            if (row && row.count === 0 && fs.existsSync(documentsJsonPath)) {
-                try {
-                    const savedDocs = JSON.parse(fs.readFileSync(documentsJsonPath, 'utf8'));
-                    if (Array.isArray(savedDocs) && savedDocs.length > 0) {
-                        const stmt = db.prepare("INSERT INTO documents (id, title, category, fiscal_year, file_path, file_url, downloads, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        savedDocs.forEach(d => {
-                            stmt.run(d.id, d.title, d.category, d.fiscal_year, d.file_path, d.file_url, d.downloads || 0, d.created_at);
-                        });
-                        stmt.finalize();
-                        console.log("Restored documents from JSON backup.");
                     }
                 } catch (e) {
                     console.error("Error restoring documents:", e);
@@ -221,7 +197,7 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
     db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        backupToJSON(); // สำรองข้อมูลลง JSON ทันที
+        backupToJSON();
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
     });
 });
@@ -258,12 +234,17 @@ app.delete('/api/lessons/:id', (req, res) => {
 // ==========================================
 // 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
-app.post('/api/documents', (req, res) => {
+app.post('/api/documents', upload.single('file'), (req, res) => {
     const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
-    const finalTitle = title || doc_title || name || filename || 'ไม่มีชื่อเอกสาร';
-    const finalCategory = category || 'ทั่วไป';
+    
+    const finalTitle = title || doc_title || name || filename || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
+    const finalCategory = category || '-';
     const finalYear = year || fiscal_year || '-';
-    const finalFileUrl = file_url || '';
+    
+    let finalFileUrl = file_url || '';
+    if (req.file) {
+        finalFileUrl = `/uploads/${req.file.filename}`;
+    }
 
     const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
     db.run(sql, [finalTitle, finalCategory, finalYear, finalFileUrl, finalFileUrl], function(err) {
@@ -271,7 +252,7 @@ app.post('/api/documents', (req, res) => {
             console.error('Error inserting document:', err.message);
             return res.status(500).json({ error: err.message });
         }
-        backupToJSON(); // สำรองข้อมูลลง JSON ทันที
+        backupToJSON();
         res.json({
             message: 'บันทึกเอกสารเรียบร้อยแล้ว',
             data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
