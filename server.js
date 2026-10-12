@@ -1,6 +1,5 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -9,36 +8,30 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. Middlewares พื้นฐาน
+// 🟢 Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ใช้ Multer แบบ Memory Storage เพื่อรองรับ FormData จากหน้าบ้านได้อย่างเสถียร
-const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 50 * 1024 * 1024 } 
-});
-
-// 🟢 2. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp บน Render
+// 🟢 Database Setup ที่ /tmp บน Render
 const dbFile = 'database.db';
-let targetDbPath = path.join(__dirname, dbFile);
+let dbPath = path.join(__dirname, dbFile);
 
-try {
-    if (fs.existsSync('/tmp')) {
-        targetDbPath = path.join('/tmp', dbFile);
-        if (!fs.existsSync(targetDbPath) && fs.existsSync(path.join(__dirname, dbFile))) {
-            fs.copyFileSync(path.join(__dirname, dbFile), targetDbPath);
-        }
+if (fs.existsSync('/tmp')) {
+    dbPath = path.join('/tmp', dbFile);
+    if (!fs.existsSync(dbPath) && fs.existsSync(path.join(__dirname, dbFile))) {
+        try {
+            fs.copyFileSync(path.join(__dirname, dbFile), dbPath);
+        } catch (e) {}
     }
-} catch (e) {}
+}
 
-const db = new sqlite3.Database(targetDbPath, (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 3. สร้างโครงสร้างตาราง
+// 🟢 สร้างตารางล่วงหน้า
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +119,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 📚 APIs: Lessons (รองรับ FormData และไฟล์แนบภาพ)
+// 📚 APIs: Lessons (รับทั้ง JSON และ FormData ได้อย่างปลอดภัย)
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -135,29 +128,14 @@ app.get('/api/lessons', (req, res) => {
     });
 });
 
-app.get('/api/lessons/:id', (req, res) => {
-    db.get("SELECT * FROM lessons WHERE id = ?", [req.params.id], (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!row) return res.status(404).json({ error: "ไม่พบบทเรียน" });
-        res.json(row);
-    });
-});
-
-app.post('/api/lessons', upload.single('image'), (req, res) => {
+app.post('/api/lessons', (req, res) => {
     try {
         const title = req.body.title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body.category || '-';
         const summary = req.body.summary || '';
         const content = req.body.content || '';
         const video_url = req.body.video_url || '';
-        
-        // ถ้ามีการอัปโหลดไฟล์ภาพมา ให้แปลงเป็น Base64 หรือบันทึก Path ชั่วคราว (หรือรองรับลิงก์)
-        let image_url = req.body.image_url || null;
-        if (req.file) {
-            // แปลงไฟล์ภาพที่อัปโหลดเป็น Base64 เก็บลง SQLite เพื่อความปลอดภัยบน Render
-            const b64 = Buffer.from(req.file.buffer).toString('base64');
-            image_url = `data:${req.file.mimetype};base64,${b64}`;
-        }
+        const image_url = req.body.image_url || null;
 
         const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
         db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
@@ -173,36 +151,6 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     }
 });
 
-app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
-    try {
-        const { id } = req.params;
-        const title = req.body.title || 'ไม่มีชื่อหัวข้อ';
-        const category = req.body.category || '-';
-        const summary = req.body.summary || '';
-        const content = req.body.content || '';
-        const video_url = req.body.video_url || '';
-
-        let imageUpdateSql = "";
-        let params = [title, category, summary, content, video_url];
-
-        if (req.file) {
-            const b64 = Buffer.from(req.file.buffer).toString('base64');
-            const image_url = `data:${req.file.mimetype};base64,${b64}`;
-            imageUpdateSql = ", image_url = ?";
-            params.push(image_url);
-        }
-        params.push(id);
-
-        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ? ${imageUpdateSql}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-        db.run(sql, params, function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
 app.delete('/api/lessons/:id', (req, res) => {
     db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -211,7 +159,7 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: Documents
+// 📄 APIs: Documents (รองรับ JSON จาก Cloudinary ที่ส่งมา)
 // ==========================================
 app.get('/api/documents', (req, res) => {
     db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
