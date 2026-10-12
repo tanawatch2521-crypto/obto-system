@@ -36,7 +36,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('Connected to SQLite Database at:', dbPath);
 });
 
-// 🟢 3. สร้างโครงสร้างตารางให้ครบถ้วนทุกคอลัมน์
+// 🟢 3. สร้างและตรวจสอบโครงสร้างตารางให้อัตโนมัติ
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
