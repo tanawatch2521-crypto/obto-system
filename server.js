@@ -9,7 +9,7 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. จัดการโฟลเดอร์ Uploads ให้ชี้ไปที่ public/uploads เท่านั้น
+// 🟢 1. สร้างโฟลเดอร์ public/uploads อัตโนมัติ
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -33,14 +33,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database (ใช้ /tmp บน Render ถ้ารันบน Cloud หรือใช้ไฟล์โลคัลปกติ)
-const dbPath = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'database.db') : './database.db';
-const db = new sqlite3.Database(dbPath, (err) => {
+// 🟢 4. เชื่อมต่อ SQLite Database
+const db = new sqlite3.Database('./database.db', (err) => {
     if (err) console.error('Database connection error:', err);
-    else console.log('Connected to SQLite Database at:', dbPath);
+    else console.log('Connected to SQLite Database.');
 });
 
-// 🟢 5. สร้าง Tables พื้นฐาน
+// 🟢 5. สร้าง Tables ในฐานข้อมูล
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,7 +160,10 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
     const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
     db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error("Insert lesson error:", err.message);
+            return res.status(500).json({ error: err.message });
+        }
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
     });
 });
