@@ -155,36 +155,46 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-app.post('/api/lessons', upload.single('image'), (req, res) => {
-    const { title, category, summary, content, video_url } = req.body;
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
-    const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
-    db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
-        if (err) {
-            console.error("Insert lesson error:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
+app.post('/api/lessons', (req, res) => {
+    upload.single('image')(req, res, (uploadErr) => {
+        if (uploadErr) console.log("Lesson upload note:", uploadErr.message);
+
+        const { title, category, summary, content, video_url } = req.body;
+        const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+        
+        const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
+            if (err) {
+                console.error("Insert lesson error:", err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
+        });
     });
 });
 
-app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
-    const { id } = req.params;
-    const { title, category, summary, content, video_url } = req.body;
-    if (req.file) {
-        const image_url = `/uploads/${req.file.filename}`;
-        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-        db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
-        });
-    } else {
-        const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-        db.run(sql, [title, category, summary, content, video_url, id], function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
-        });
-    }
+app.put('/api/lessons/:id', (req, res) => {
+    upload.single('image')(req, res, (uploadErr) => {
+        if (uploadErr) console.log("Lesson update upload note:", uploadErr.message);
+
+        const { id } = req.params;
+        const { title, category, summary, content, video_url } = req.body;
+        
+        if (req.file) {
+            const image_url = `/uploads/${req.file.filename}`;
+            const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+            });
+        } else {
+            const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            db.run(sql, [title, category, summary, content, video_url, id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
+            });
+        }
+    });
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
@@ -195,13 +205,11 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents) - ปรับปรุงให้รองรับการอัปโหลดแบบยืดหยุ่น
+// 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
 app.post('/api/documents', (req, res) => {
     upload.single('file')(req, res, (uploadErr) => {
-        if (uploadErr) {
-            console.log("Upload middleware note:", uploadErr.message);
-        }
+        if (uploadErr) console.log("Document upload note:", uploadErr.message);
 
         const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
         
