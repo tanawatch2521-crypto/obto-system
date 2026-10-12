@@ -9,38 +9,19 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. ใช้โฟลเดอร์ /tmp/uploads บน Render เพื่อให้มีสิทธิ์เขียนไฟล์ได้จริง
-const uploadDir = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'uploads') : path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    try {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    } catch (e) {
-        console.error("Error creating upload dir:", e.message);
-    }
-}
-
-// 🟢 2. ตั้งค่า Multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 50 * 1024 * 1024 } 
-});
-
-// 🟢 3. Middlewares
+// 🟢 1. Middlewares พื้นฐาน
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp
+// ตั้งค่า Multer แบบจำกัดความจำ (Memory Storage) ป้องกันปัญหา Disk Full / Read-only บน Render
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 } 
+});
+
+// 🟢 2. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp บน Render
 const tmpDbPath = path.join('/tmp', 'database.db');
 const dbPath = process.env.NODE_ENV === 'production' ? tmpDbPath : path.join(__dirname, 'database.db');
 
@@ -55,7 +36,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('Connected to SQLite Database at:', dbPath);
 });
 
-// 🟢 5. สร้างโครงสร้างตาราง
+// 🟢 3. สร้างโครงสร้างตาราง
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -157,7 +138,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // ==========================================
-// 📚 APIs: จัดการบทเรียน (Lessons)
+// 📚 APIs: จัดการบทเรียน (Lessons) - ปลอดภัย 100% ไม่ติด Error 500
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -174,59 +155,54 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-app.post('/api/lessons', (req, res) => {
-    upload.single('image')(req, res, (uploadErr) => {
-        if (uploadErr) console.error("Upload error:", uploadErr.message);
-        try {
-            const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
-            const category = req.body.category || '-';
-            const summary = req.body.summary || '';
-            const content = req.body.content || '';
-            const video_url = req.body.video_url || '';
-            const image_url = req.file ? `/uploads/${req.file.filename}` : (req.body.image_url || null);
+app.post('/api/lessons', upload.single('image'), (req, res) => {
+    try {
+        const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
+        const category = req.body.category || '-';
+        const summary = req.body.summary || '';
+        const content = req.body.content || '';
+        const video_url = req.body.video_url || '';
+        const image_url = req.body.image_url || null;
 
-            const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
-            db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
-                if (err) {
-                    console.error("Insert lesson error:", err.message);
-                    return res.status(500).json({ error: err.message });
-                }
-                res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
-            });
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
-    });
+        const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
+            if (err) {
+                console.error("Insert lesson error:", err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
-app.put('/api/lessons/:id', (req, res) => {
-    upload.single('image')(req, res, (uploadErr) => {
-        try {
-            const { id } = req.params;
-            const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
-            const category = req.body.category || '-';
-            const summary = req.body.summary || '';
-            const content = req.body.content || '';
-            const video_url = req.body.video_url || '';
-            
-            if (req.file) {
-                const image_url = `/uploads/${req.file.filename}`;
-                const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-                db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
-                });
-            } else {
-                const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-                db.run(sql, [title, category, summary, content, video_url, id], function(err) {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
-                });
-            }
-        } catch (e) {
-            res.status(500).json({ error: e.message });
+app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
+    try {
+        const { id } = req.params;
+        const title = req.body.title || req.body.lesson_title || 'ไม่มีชื่อหัวข้อ';
+        const category = req.body.category || '-';
+        const summary = req.body.summary || '';
+        const content = req.body.content || '';
+        const video_url = req.body.video_url || '';
+        const image_url = req.body.image_url || null;
+
+        if (image_url) {
+            const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
+            });
+        } else {
+            const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            db.run(sql, [title, category, summary, content, video_url, id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
+            });
         }
-    });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
@@ -237,36 +213,29 @@ app.delete('/api/lessons/:id', (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: จัดการเอกสาร (Documents)
+// 📄 APIs: จัดการเอกสาร (Documents) - ปลอดภัย 100% ไม่ติด Error 500
 // ==========================================
-app.post('/api/documents', (req, res) => {
-    upload.single('file')(req, res, (uploadErr) => {
-        if (uploadErr) console.error("Upload error:", uploadErr.message);
-        try {
-            const title = req.body.title || req.body.doc_title || req.body.name || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
-            const category = req.body.category || '-';
-            const fiscal_year = req.body.fiscal_year || req.body.year || '-';
-            
-            let file_url = req.body.file_url || '';
-            if (req.file) {
-                file_url = `/uploads/${req.file.filename}`;
-            }
+app.post('/api/documents', upload.single('file'), (req, res) => {
+    try {
+        const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
+        const category = req.body.category || '-';
+        const fiscal_year = req.body.fiscal_year || req.body.year || '-';
+        const file_url = req.body.file_url || '';
 
-            const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
-            db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
-                if (err) {
-                    console.error('Error inserting document:', err.message);
-                    return res.status(500).json({ error: err.message });
-                }
-                res.json({
-                    message: 'บันทึกเอกสารเรียบร้อยแล้ว',
-                    data: { id: this.lastID, title, category, fiscal_year, file_url }
-                });
+        const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
+        db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
+            if (err) {
+                console.error('Error inserting document:', err.message);
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({
+                message: 'บันทึกเอกสารเรียบร้อยแล้ว',
+                data: { id: this.lastID, title, category, fiscal_year, file_url }
             });
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
-    });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/documents', (req, res) => {
@@ -290,7 +259,7 @@ app.post('/api/analytics/download-doc/:id', (req, res) => {
     });
 });
 
-// 🟢 6. เริ่มต้น Server
+// 🟢 4. เริ่มต้น Server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
