@@ -15,20 +15,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ใช้ Multer แบบ Memory Storage เพื่อความเสถียรบน Render
+// ใช้ Multer แบบ Memory Storage เพื่อความเสถียรสูงสุด
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 } 
 });
 
-// 🟢 2. เชื่อมต่อฐานข้อมูล SQLite ที่ /tmp บน Render
-const tmpDbPath = path.join('/tmp', 'database.db');
-const dbPath = process.env.NODE_ENV === 'production' ? tmpDbPath : path.join(__dirname, 'database.db');
+// 🟢 2. ตั้งค่าฐานข้อมูลให้ใช้ /tmp บน Render เสมอเพื่อป้องกันข้อผิดพลาด Read-only
+const dbName = 'database.db';
+const localDbPath = path.join(__dirname, dbName);
+const tmpDir = '/tmp';
+let dbPath = localDbPath;
 
-if (!fs.existsSync(dbPath) && fs.existsSync(path.join(__dirname, 'database.db'))) {
-    try {
-        fs.copyFileSync(path.join(__dirname, 'database.db'), dbPath);
-    } catch (e) {}
+if (fs.existsSync(tmpDir)) {
+    dbPath = path.join(tmpDir, dbName);
+    if (!fs.existsSync(dbPath) && fs.existsSync(localDbPath)) {
+        try {
+            fs.copyFileSync(localDbPath, dbPath);
+            console.log("Copied database to /tmp successfully.");
+        } catch (e) {
+            console.error("Failed to copy database to /tmp:", e.message);
+        }
+    }
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -36,7 +44,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     else console.log('Connected to SQLite Database at:', dbPath);
 });
 
-// 🟢 3. สร้างและตรวจสอบโครงสร้างตารางให้อัตโนมัติ
+// 🟢 3. สร้างและตรวจสอบโครงสร้างตาราง
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
