@@ -16,7 +16,6 @@ app.use(express.static('public'));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// 🟢 กำหนดเส้นทางฐานข้อมูลที่ /tmp บน Render
 const dbFile = 'database.db';
 let dbPath = path.join(__dirname, dbFile);
 
@@ -33,7 +32,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 สร้างตารางและอัปเดตโครงสร้างคอลัมน์ให้ครบถ้วนทันที
+// 🟢 สร้างตารางและเพิ่มคอลัมน์ให้อัตโนมัติทันที
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +52,9 @@ db.serialize(() => {
         image_url TEXT,
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`, () => {
+        db.run(`ALTER TABLE lessons ADD COLUMN image_url TEXT`, (err) => {});
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,13 +66,12 @@ db.serialize(() => {
         downloads INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
-        // ตรวจสอบและเพิ่มคอลัมน์ file_url เผื่อตารางเก่าไม่มี
         db.run(`ALTER TABLE documents ADD COLUMN file_url TEXT`, (err) => {});
     });
 });
 
 // ==========================================
-// 📚 APIs: Lessons (รองรับ multer และ FormData)
+// 📚 APIs: Lessons
 // ==========================================
 app.post('/api/lessons', upload.any(), (req, res) => {
     try {
@@ -97,7 +97,7 @@ app.post('/api/lessons', upload.any(), (req, res) => {
 });
 
 // ==========================================
-// 📄 APIs: Documents (รองรับทั้ง JSON และ FormData)
+// 📄 APIs: Documents
 // ==========================================
 app.post('/api/documents', upload.any(), (req, res) => {
     try {
@@ -120,7 +120,6 @@ app.post('/api/documents', upload.any(), (req, res) => {
     }
 });
 
-// APIs พื้นฐานอื่นๆ
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
