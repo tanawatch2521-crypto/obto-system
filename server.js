@@ -29,7 +29,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 สร้างตารางและบังคับเติมคอลัมน์ที่ขาดหายไปทั้งหมดทันที
+// 🟢 สร้างตารางและตรวจสอบคอลัมน์ทั้งหมดอย่างถูกต้อง
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,8 +50,8 @@ db.serialize(() => {
         video_url TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
-        db.run(`ALTER TABLE lessons ADD COLUMN image_url TEXT`, (err) => {});
-        db.run(`ALTER TABLE lessons ADD COLUMN video_url TEXT`, (err) => {});
+        db.run(`ALTER TABLE lessons ADD COLUMN image_url TEXT`, () => {});
+        db.run(`ALTER TABLE lessons ADD COLUMN video_url TEXT`, () => {});
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS documents (
@@ -64,7 +64,7 @@ db.serialize(() => {
         downloads INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
-        db.run(`ALTER TABLE documents ADD COLUMN file_url TEXT`, (err) => {});
+        db.run(`ALTER TABLE documents ADD COLUMN file_url TEXT`, () => {});
     });
 });
 
@@ -162,7 +162,7 @@ app.post('/api/documents', (req, res) => {
 
         const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
         db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
-            if, (err) {
+            if (err) {
                 console.error('Document Insert Error:', err.message);
                 return res.status(500).json({ error: err.message });
             }
