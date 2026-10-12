@@ -9,7 +9,7 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🟢 1. สร้างโฟลเดอร์ public/uploads อัตโนมัติ
+// 🟢 1. จัดการโฟลเดอร์ Uploads ให้ชี้ไปที่ public/uploads เท่านั้น
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -33,24 +33,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
-// 🟢 4. เชื่อมต่อ SQLite Database
-const db = new sqlite3.Database('./database.db', (err) => {
+// 🟢 4. เชื่อมต่อ SQLite Database (ใช้ /tmp บน Render ถ้ารันบน Cloud หรือใช้ไฟล์โลคัลปกติ)
+const dbPath = process.env.NODE_ENV === 'production' ? path.join('/tmp', 'database.db') : './database.db';
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Database connection error:', err);
-    else console.log('Connected to SQLite Database.');
+    else console.log('Connected to SQLite Database at:', dbPath);
 });
-
-// ฟังก์ชันจำลองสำรองข้อมูลแบบปลอดภัย (ไม่ทำให้แอปพังถ้าเขียนไฟล์ไม่ได้)
-function backupToJSON() {
-    // ป้องกันไม่ให้แอปสะดุดหาก Render บล็อกการเขียนไฟล์
-    try {
-        const dataDir = path.join(__dirname, 'data');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-    } catch (e) {
-        // ข้ามไปหากเขียนไม่ได้
-    }
-}
 
 // 🟢 5. สร้าง Tables พื้นฐาน
 db.serialize(() => {
@@ -174,7 +162,6 @@ app.post('/api/lessons', upload.single('image'), (req, res) => {
     const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
     db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        backupToJSON();
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
     });
 });
@@ -187,14 +174,12 @@ app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
         const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
         db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
             if (err) return res.status(500).json({ error: err.message });
-            backupToJSON();
             res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
         });
     } else {
         const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
         db.run(sql, [title, category, summary, content, video_url, id], function(err) {
             if (err) return res.status(500).json({ error: err.message });
-            backupToJSON();
             res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
         });
     }
@@ -203,7 +188,6 @@ app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
 app.delete('/api/lessons/:id', (req, res) => {
     db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        backupToJSON();
         res.json({ message: 'ลบบทเรียนสำเร็จ', changes: this.changes });
     });
 });
@@ -229,7 +213,6 @@ app.post('/api/documents', upload.single('file'), (req, res) => {
             console.error('Error inserting document:', err.message);
             return res.status(500).json({ error: err.message });
         }
-        backupToJSON();
         res.json({
             message: 'บันทึกเอกสารเรียบร้อยแล้ว',
             data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
@@ -250,7 +233,6 @@ app.get('/api/documents', (req, res) => {
 app.delete('/api/documents/:id', (req, res) => {
     db.run("DELETE FROM documents WHERE id = ?", [req.params.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        backupToJSON();
         res.json({ message: "ลบเอกสารสำเร็จ" });
     });
 });
