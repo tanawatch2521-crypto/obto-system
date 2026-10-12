@@ -34,8 +34,9 @@ app.use(express.static('public'));
 app.use('/uploads', express.static(uploadDir));
 
 // 🟢 4. เชื่อมต่อ SQLite Database
-const db = new sqlite3.Database('./database.db', (err) => {
-    if (err) console.error('Database connection error:', err);
+const dbPath = path.join(__dirname, 'database.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) console.error('Database connection error:', err.message);
     else console.log('Connected to SQLite Database.');
 });
 
@@ -155,46 +156,47 @@ app.get('/api/lessons/:id', (req, res) => {
     });
 });
 
-app.post('/api/lessons', (req, res) => {
-    upload.single('image')(req, res, (uploadErr) => {
-        if (uploadErr) console.log("Lesson upload note:", uploadErr.message);
-
+app.post('/api/lessons', upload.single('image'), (req, res) => {
+    try {
         const { title, category, summary, content, video_url } = req.body;
         const image_url = req.file ? `/uploads/${req.file.filename}` : null;
         
         const sql = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES (?, ?, ?, ?, ?, ?)`;
-        db.run(sql, [title, category, summary, content, image_url, video_url], function(err) {
+        db.run(sql, [title || '', category || '', summary || '', content || '', image_url, video_url || ''], function(err) {
             if (err) {
                 console.error("Insert lesson error:", err.message);
                 return res.status(500).json({ error: err.message });
             }
             res.json({ message: "บันทึกบทเรียนสำเร็จ", id: this.lastID });
         });
-    });
+    } catch (e) {
+        console.error("Lesson catch error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
-app.put('/api/lessons/:id', (req, res) => {
-    upload.single('image')(req, res, (uploadErr) => {
-        if (uploadErr) console.log("Lesson update upload note:", uploadErr.message);
-
+app.put('/api/lessons/:id', upload.single('image'), (req, res) => {
+    try {
         const { id } = req.params;
         const { title, category, summary, content, video_url } = req.body;
         
         if (req.file) {
             const image_url = `/uploads/${req.file.filename}`;
             const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, image_url = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-            db.run(sql, [title, category, summary, content, image_url, video_url, id], function(err) {
+            db.run(sql, [title || '', category || '', summary || '', content || '', image_url, video_url || '', id], function(err) {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
             });
         } else {
             const sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-            db.run(sql, [title, category, summary, content, video_url, id], function(err) {
+            db.run(sql, [title || '', category || '', summary || '', content || '', video_url || '', id], function(err) {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({ message: "อัปเดตบทเรียนสำเร็จ", changes: this.changes });
             });
         }
-    });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.delete('/api/lessons/:id', (req, res) => {
@@ -207,10 +209,8 @@ app.delete('/api/lessons/:id', (req, res) => {
 // ==========================================
 // 📄 APIs: จัดการเอกสาร (Documents)
 // ==========================================
-app.post('/api/documents', (req, res) => {
-    upload.single('file')(req, res, (uploadErr) => {
-        if (uploadErr) console.log("Document upload note:", uploadErr.message);
-
+app.post('/api/documents', upload.single('file'), (req, res) => {
+    try {
         const { title, doc_title, name, category, year, fiscal_year, file_url, filename } = req.body;
         
         const finalTitle = title || doc_title || name || filename || (req.file ? req.file.originalname : 'ไม่มีชื่อเอกสาร');
@@ -233,7 +233,10 @@ app.post('/api/documents', (req, res) => {
                 data: { id: this.lastID, title: finalTitle, category: finalCategory, fiscal_year: finalYear, file_url: finalFileUrl }
             });
         });
-    });
+    } catch (e) {
+        console.error("Document catch error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/documents', (req, res) => {
