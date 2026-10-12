@@ -1,6 +1,5 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -13,8 +12,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-
-const upload = multer({ storage: multer.memoryStorage() });
 
 const dbFile = 'database.db';
 let dbPath = path.join(__dirname, dbFile);
@@ -32,7 +29,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 สร้างตารางและเพิ่มคอลัมน์ให้อัตโนมัติทันที
+// 🟢 สร้างและตรวจสอบตารางให้ครบถ้วน
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,9 +68,24 @@ db.serialize(() => {
 });
 
 // ==========================================
-// 📚 APIs: Lessons
+// 📚 APIs: Lessons (รองรับ JSON จาก Cloudinary)
 // ==========================================
-app.post('/api/lessons', upload.any(), (req, res) => {
+app.get('/api/lessons', (req, res) => {
+    db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
+});
+
+app.get('/api/lessons/:id', (req, res) => {
+    db.get("SELECT * FROM lessons WHERE id = ?", [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: "ไม่พบบทเรียน" });
+        res.json(row);
+    });
+});
+
+app.post('/api/lessons', (req, res) => {
     try {
         const title = req.body.title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body.category || '-';
@@ -96,10 +108,51 @@ app.post('/api/lessons', upload.any(), (req, res) => {
     }
 });
 
+app.put('/api/lessons/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const title = req.body.title || 'ไม่มีชื่อหัวข้อ';
+        const category = req.body.category || '-';
+        const summary = req.body.summary || '';
+        const content = req.body.content || '';
+        const video_url = req.body.video_url || '';
+        const image_url = req.body.image_url || null;
+
+        let sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        let params = [title, category, summary, content, video_url, id];
+
+        if (image_url) {
+            sql = `UPDATE lessons SET title = ?, category = ?, summary = ?, content = ?, video_url = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            params = [title, category, summary, content, video_url, image_url, id];
+        }
+
+        db.run(sql, params, function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.delete('/api/lessons/:id', (req, res) => {
+    db.run("DELETE FROM lessons WHERE id = ?", [req.params.id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'ลบสำเร็จ' });
+    });
+});
+
 // ==========================================
 // 📄 APIs: Documents
 // ==========================================
-app.post('/api/documents', upload.any(), (req, res) => {
+app.get('/api/documents', (req, res) => {
+    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
+});
+
+app.post('/api/documents', (req, res) => {
     try {
         const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
         const category = req.body.category || '-';
@@ -120,20 +173,14 @@ app.post('/api/documents', upload.any(), (req, res) => {
     }
 });
 
-app.get('/api/lessons', (req, res) => {
-    db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
+app.delete('/api/documents/:id', (req, res) => {
+    db.run("DELETE FROM documents WHERE id = ?", [req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json(rows || []);
+        res.json({ message: 'ลบสำเร็จ' });
     });
 });
 
-app.get('/api/documents', (req, res) => {
-    db.all("SELECT * FROM documents ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows || []);
-    });
-});
-
+// Users & Login
 app.get('/api/users', (req, res) => {
     db.all("SELECT id, username, fullname, role FROM users", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
