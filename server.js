@@ -29,7 +29,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('DB Connect Error:', err.message);
 });
 
-// 🟢 สร้างและตรวจสอบตารางให้ครบถ้วน
+// 🟢 สร้างตารางและบังคับเติมคอลัมน์ที่ขาดหายไปทั้งหมดทันที
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +51,7 @@ db.serialize(() => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, () => {
         db.run(`ALTER TABLE lessons ADD COLUMN image_url TEXT`, (err) => {});
+        db.run(`ALTER TABLE lessons ADD COLUMN video_url TEXT`, (err) => {});
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS documents (
@@ -68,7 +69,7 @@ db.serialize(() => {
 });
 
 // ==========================================
-// 📚 APIs: Lessons (รองรับ JSON จาก Cloudinary)
+// 📚 APIs: Lessons
 // ==========================================
 app.get('/api/lessons', (req, res) => {
     db.all("SELECT * FROM lessons ORDER BY id DESC", [], (err, rows) => {
@@ -161,7 +162,7 @@ app.post('/api/documents', (req, res) => {
 
         const sql = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES (?, ?, ?, ?, ?)`;
         db.run(sql, [title, category, fiscal_year, file_url, file_url], function(err) {
-            if (err) {
+            if, (err) {
                 console.error('Document Insert Error:', err.message);
                 return res.status(500).json({ error: err.message });
             }
