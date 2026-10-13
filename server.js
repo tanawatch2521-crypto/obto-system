@@ -79,6 +79,16 @@ app.get('/api/lessons', async (req, res) => {
     }
 });
 
+app.get('/api/lessons/:id', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM lessons WHERE id = $1", [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: "ไม่พบบทเรียน" });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/lessons', async (req, res) => {
     try {
         const { title, category, summary, content, image_url, video_url } = req.body;
@@ -86,6 +96,27 @@ app.post('/api/lessons', async (req, res) => {
         const values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', image_url || null, video_url || ''];
         const result = await pool.query(query, values);
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: result.rows[0].id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 🟢 เพิ่มฟังก์ชันรองรับการแก้ไขบทเรียน (แก้ปัญหา Error 404 ตอนกดแก้ไข)
+app.put('/api/lessons/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, category, summary, content, video_url, image_url } = req.body;
+
+        let query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
+        let values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', id];
+
+        if (image_url) {
+            query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`;
+            values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', image_url, id];
+        }
+
+        await pool.query(query, values);
+        res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -148,7 +179,6 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// 🟢 เพิ่มฟังก์ชันรองรับการสร้างผู้ใช้งานใหม่ (แก้ปัญหา 404)
 app.post('/api/users', async (req, res) => {
     try {
         const { username, password, fullname, role } = req.body;
