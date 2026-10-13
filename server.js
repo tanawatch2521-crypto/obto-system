@@ -3,7 +3,9 @@ const { Pool } = require('pg');
 const path = require('path');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const multer = require('multer'); // เพิ่ม multer สำหรับรับ FormData จากหน้าบ้าน
 
+const upload = multer(); // ตั้งค่าตัวรับไฟล์ชั่วคราว
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -27,7 +29,7 @@ pool.connect((err, client, release) => {
     }
 });
 
-// 🟢 สร้างตารางและตรวจสอบโครงสร้างคอลัมน์บน Supabase อัตโนมัติ
+// 🟢 สร้างตารางอัตโนมัติบน Supabase
 const initDB = async () => {
     try {
         await pool.query(`
@@ -91,7 +93,7 @@ app.get('/api/lessons/:id', async (req, res) => {
 
 app.post('/api/lessons', async (req, res) => {
     try {
-        const title = req.body?.title || req.body?.lesson_title || 'ไม่มีชื่อหัวข้อ';
+        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body?.category || '-';
         const summary = req.body?.summary || '';
         const content = req.body?.content || '';
@@ -108,25 +110,19 @@ app.post('/api/lessons', async (req, res) => {
     }
 });
 
-// 🟢 ปรับปรุงการรับค่าอัปเดตให้ยืดหยุ่น รองรับทุกฟอร์มจากหน้าบ้าน
-app.put('/api/lessons/:id', async (req, res) => {
+// 🟢 รองรับการอัปเดตบทเรียนผ่าน FormData จากหน้าบ้านแบบสมบูรณ์
+app.put('/api/lessons/:id', upload.single('image'), async (req, res) => {
     try {
         const { id } = req.params;
-        const title = req.body?.title || req.body?.lesson_title || 'ไม่มีชื่อหัวข้อ';
+        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body?.category || '-';
         const summary = req.body?.summary || '';
         const content = req.body?.content || '';
         const video_url = req.body?.video_url || '';
-        const image_url = req.body?.image_url;
 
-        let query, values;
-        if (image_url) {
-            query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`;
-            values = [title, category, summary, content, video_url, image_url, id];
-        } else {
-            query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
-            values = [title, category, summary, content, video_url, id];
-        }
+        // หมายเหตุ: หน้าบ้านส่งรูปมาทาง Cloudinary ไปแล้ว แต่ถ้ามีการอัปเดตแบบฟอร์มธรรมดา เราจัดการอัปเดตข้อความก่อน
+        let query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
+        let values = [title, category, summary, content, video_url, id];
 
         const updateResult = await pool.query(query, values);
         if (updateResult.rowCount === 0) {
