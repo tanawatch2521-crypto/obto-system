@@ -27,7 +27,7 @@ pool.connect((err, client, release) => {
     }
 });
 
-// 🟢 สร้างตารางอัตโนมัติบน Supabase
+// 🟢 สร้างตารางและตรวจสอบโครงสร้างคอลัมน์บน Supabase อัตโนมัติ
 const initDB = async () => {
     try {
         await pool.query(`
@@ -79,7 +79,6 @@ app.get('/api/lessons', async (req, res) => {
     }
 });
 
-// 🟢 ปรับปรุง API ดึงข้อมูลบทเรียนราย ID ให้ส่งค่ากลับอย่างถูกต้อง
 app.get('/api/lessons/:id', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM lessons WHERE id = $1", [req.params.id]);
@@ -92,7 +91,7 @@ app.get('/api/lessons/:id', async (req, res) => {
 
 app.post('/api/lessons', async (req, res) => {
     try {
-        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
+        const title = req.body?.title || req.body?.lesson_title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body?.category || '-';
         const summary = req.body?.summary || '';
         const content = req.body?.content || '';
@@ -104,14 +103,16 @@ app.post('/api/lessons', async (req, res) => {
         const result = await pool.query(query, values);
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: result.rows[0].id });
     } catch (err) {
+        console.error("Lesson Insert Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
+// 🟢 ปรับปรุงการรับค่าอัปเดตให้ยืดหยุ่น รองรับทุกฟอร์มจากหน้าบ้าน
 app.put('/api/lessons/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
+        const title = req.body?.title || req.body?.lesson_title || 'ไม่มีชื่อหัวข้อ';
         const category = req.body?.category || '-';
         const summary = req.body?.summary || '';
         const content = req.body?.content || '';
@@ -127,7 +128,11 @@ app.put('/api/lessons/:id', async (req, res) => {
             values = [title, category, summary, content, video_url, id];
         }
 
-        await pool.query(query, values);
+        const updateResult = await pool.query(query, values);
+        if (updateResult.rowCount === 0) {
+            return res.status(404).json({ error: "ไม่พบบทเรียนที่ต้องการอัปเดต" });
+        }
+
         res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
     } catch (err) {
         console.error("Lesson Update Error:", err.message);
