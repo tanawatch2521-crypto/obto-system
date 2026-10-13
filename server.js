@@ -101,23 +101,25 @@ app.post('/api/lessons', async (req, res) => {
     }
 });
 
-// 🟢 เพิ่มฟังก์ชันรองรับการแก้ไขบทเรียน (แก้ปัญหา Error 404 ตอนกดแก้ไข)
+// 🟢 แก้ไขคำสั่ง SQL สำหรับอัปเดตบทเรียนให้ถูกต้อง 100%
 app.put('/api/lessons/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { title, category, summary, content, video_url, image_url } = req.body;
 
-        let query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
-        let values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', id];
-
+        let query, values;
         if (image_url) {
             query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`;
             values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', image_url, id];
+        } else {
+            query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
+            values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', id];
         }
 
         await pool.query(query, values);
         res.json({ message: "อัปเดตบทเรียนสำเร็จ" });
     } catch (err) {
+        console.error("Lesson Update Error:", err.message);
         res.status(500).json({ error: err.message });
     }
 });
