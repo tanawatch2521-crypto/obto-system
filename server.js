@@ -91,9 +91,15 @@ app.get('/api/lessons/:id', async (req, res) => {
 
 app.post('/api/lessons', async (req, res) => {
     try {
-        const { title, category, summary, content, image_url, video_url } = req.body;
+        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
+        const category = req.body?.category || '-';
+        const summary = req.body?.summary || '';
+        const content = req.body?.content || '';
+        const image_url = req.body?.image_url || null;
+        const video_url = req.body?.video_url || '';
+
         const query = `INSERT INTO lessons (title, category, summary, content, image_url, video_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`;
-        const values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', image_url || null, video_url || ''];
+        const values = [title, category, summary, content, image_url, video_url];
         const result = await pool.query(query, values);
         res.json({ message: "บันทึกบทเรียนสำเร็จ", id: result.rows[0].id });
     } catch (err) {
@@ -101,19 +107,24 @@ app.post('/api/lessons', async (req, res) => {
     }
 });
 
-// 🟢 แก้ไขคำสั่ง SQL สำหรับอัปเดตบทเรียนให้ถูกต้อง 100%
+// 🟢 ป้องกัน Error กรณี req.body เป็นค่าว่างตอนอัปเดตบทเรียน
 app.put('/api/lessons/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, category, summary, content, video_url, image_url } = req.body;
+        const title = req.body?.title || 'ไม่มีชื่อหัวข้อ';
+        const category = req.body?.category || '-';
+        const summary = req.body?.summary || '';
+        const content = req.body?.content || '';
+        const video_url = req.body?.video_url || '';
+        const image_url = req.body?.image_url;
 
         let query, values;
         if (image_url) {
             query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, image_url = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7`;
-            values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', image_url, id];
+            values = [title, category, summary, content, video_url, image_url, id];
         } else {
             query = `UPDATE lessons SET title = $1, category = $2, summary = $3, content = $4, video_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`;
-            values = [title || 'ไม่มีชื่อหัวข้อ', category || '-', summary || '', content || '', video_url || '', id];
+            values = [title, category, summary, content, video_url, id];
         }
 
         await pool.query(query, values);
@@ -147,10 +158,10 @@ app.get('/api/documents', async (req, res) => {
 
 app.post('/api/documents', async (req, res) => {
     try {
-        const title = req.body.title || req.body.doc_title || req.body.name || 'ไม่มีชื่อเอกสาร';
-        const category = req.body.category || '-';
-        const fiscal_year = req.body.fiscal_year || req.body.year || '-';
-        const file_url = req.body.file_url || '';
+        const title = req.body?.title || req.body?.doc_title || req.body?.name || 'ไม่มีชื่อเอกสาร';
+        const category = req.body?.category || '-';
+        const fiscal_year = req.body?.fiscal_year || req.body?.year || '-';
+        const file_url = req.body?.file_url || '';
 
         const query = `INSERT INTO documents (title, category, fiscal_year, file_path, file_url) VALUES ($1, $2, $3, $4, $5) RETURNING id`;
         const result = await pool.query(query, [title, category, fiscal_year, file_url, file_url]);
@@ -183,16 +194,18 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
     try {
-        const { username, password, fullname, role } = req.body;
+        const username = req.body?.username;
+        const password = req.body?.password;
+        const fullname = req.body?.fullname || username;
+        const role = req.body?.role || 'เจ้าหน้าที่ทั่วไป';
+
         if (!username || !password) {
             return res.status(400).json({ message: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const query = `INSERT INTO users (username, password, fullname, role) VALUES ($1, $2, $3, $4) RETURNING id`;
-        const values = [username, hashedPassword, fullname || username, role || 'เจ้าหน้าที่ทั่วไป'];
-        
-        const result = await pool.query(query, values);
+        const result = await pool.query(query, [username, hashedPassword, fullname, role]);
         res.json({ message: 'เพิ่มผู้ใช้งานสำเร็จ', id: result.rows[0].id });
     } catch (err) {
         console.error('User Insert Error:', err.message);
@@ -211,7 +224,9 @@ app.delete('/api/users/:id', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const username = req.body?.username;
+        const password = req.body?.password;
+
         const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
         if (result.rows.length === 0) return res.status(400).json({ message: 'ไม่พบผู้ใช้' });
         
