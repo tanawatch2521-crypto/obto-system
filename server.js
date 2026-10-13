@@ -79,6 +79,7 @@ app.get('/api/lessons', async (req, res) => {
     }
 });
 
+// 🟢 ปรับปรุง API ดึงข้อมูลบทเรียนราย ID ให้ส่งค่ากลับอย่างถูกต้อง
 app.get('/api/lessons/:id', async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM lessons WHERE id = $1", [req.params.id]);
@@ -107,7 +108,6 @@ app.post('/api/lessons', async (req, res) => {
     }
 });
 
-// 🟢 ป้องกัน Error กรณี req.body เป็นค่าว่างตอนอัปเดตบทเรียน
 app.put('/api/lessons/:id', async (req, res) => {
     try {
         const { id } = req.params;
