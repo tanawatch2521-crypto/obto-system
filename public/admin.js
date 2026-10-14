@@ -66,10 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 cloudData.append('file', file);
                 cloudData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
-                    method: 'POST',
-                    body: cloudData
-                });
+               const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`, {
+    method: 'POST',
+    body: cloudData
+});
 
                 const cloudResult = await cloudRes.json();
                 if (!cloudRes.ok) {
