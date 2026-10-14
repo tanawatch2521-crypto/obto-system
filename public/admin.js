@@ -2,7 +2,7 @@
 // 🛠️ ADMIN.JS - เชื่อมต่อ Cloudinary ถาวร
 // ==========================================
 const CLOUDINARY_CLOUD_NAME = 'gibe8jv9';
-const CLOUDINARY_UPLOAD_PRESET = 'nzjzsfyr';
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
 let quill, editQuill;
 
